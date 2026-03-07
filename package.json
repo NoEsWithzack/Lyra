@@ -1,0 +1,31 @@
+{
+  "name": "lyra",
+  "version": "0.4.0",
+  "description": "Music overlay for streamers and content creators — self-hosted, OBS-ready, fully customizable.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "obs",
+    "music",
+    "overlay",
+    "widget",
+    "streaming",
+    "mpris",
+    "now-playing",
+    "browser-source"
+  ],
+  "author": "Zack (https://github.com/NoEsWithzack)",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/NoEsWithzack/lyra"
+  },
+  "dependencies": {
+    "dbus-next": "^0.10.2",
+    "express": "^4.18.2",
+    "ws": "^8.16.0"
+  }
+}

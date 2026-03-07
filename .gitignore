@@ -1,0 +1,9 @@
+node_modules/
+presets.json
+build/
+*.AppImage
+*.deb
+*.exe
+.env
+.DS_Store
+*.log

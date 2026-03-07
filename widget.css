@@ -1,0 +1,560 @@
+        :root {
+            --bg: rgba(18, 18, 22, 0.85);
+            --track: #ffffff; --artist: #a1a1aa; --acc: #1db954;
+            --glass: saturate(180%) blur(24px);
+            --glow-color: #ffffff;
+            --lyra-font: 'Inter';
+        }
+        .dark-mode  { --bg: rgba(18, 18, 22, 0.85);    --track: #ffffff; --artist: #a1a1aa; --glow-color: #ffffff; }
+        .light-mode { --bg: rgba(245, 245, 247, 0.92); --track: #1d1d1f; --artist: #6e6e73; --glow-color: #000000; }
+
+        ::-webkit-scrollbar { display: none !important; }
+        * { scrollbar-width: none !important; -ms-overflow-style: none !important; box-sizing: border-box; }
+
+        html, body {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            overflow: hidden; background: transparent;
+            -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+        }
+        body { display: flex; align-items: center; justify-content: center;
+               font-family: var(--lyra-font), 'Inter', sans-serif; }
+        /* Shell cmd line always stays monospace regardless of font choice */
+        .t-shell #shell-body { font-family: 'JetBrains Mono', monospace; }
+
+        #widget {
+            display: flex; position: relative;
+            transition: all 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+            font-family: var(--lyra-font), 'Inter', sans-serif;
+            margin: 25px; z-index: 1;
+        }
+
+        /* =====================================================
+           COMPACT
+           ===================================================== */
+        .t-compact {
+            background: var(--bg); align-items: center; gap: 12px;
+            padding: 12px 16px; border-radius: 18px;
+            border: 1px solid rgba(255,255,255,0.07);
+            backdrop-filter: var(--glass);
+            box-shadow: 0 8px 28px rgba(0,0,0,0.45), 0 0 0 0.5px rgba(255,255,255,0.04);
+            min-width: 340px;
+        }
+        .light-mode.t-compact { border-color: rgba(0,0,0,0.07); box-shadow: 0 8px 28px rgba(0,0,0,0.1); }
+        .t-compact #art-container { flex-shrink: 0; }
+        .t-compact #track  { font-size: 13.5px; font-weight: 700; letter-spacing: -0.3px; }
+        .t-compact #artist { font-size: 11.5px; margin-top: 2px; }
+        .t-compact #progress-wrapper { margin-top: 9px; }
+        .t-compact.c-square #art { width: 60px; height: 60px; border-radius: 10px; }
+        .t-compact.c-vinyl  #art { width: 60px; height: 60px; }
+        .t-compact.c-none #art-container { display: none !important; }
+
+        /* =====================================================
+           BOXY
+           ===================================================== */
+        .t-boxy { background: transparent !important; border: none !important; gap: 14px; align-items: center; box-shadow: none !important; backdrop-filter: none !important; }
+        .t-boxy #art-container { background: var(--bg); padding: 5px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.09); box-shadow: 0 12px 30px rgba(0,0,0,0.35), 0 0 0 0.5px rgba(255,255,255,0.04); backdrop-filter: var(--glass); }
+        .t-boxy #info { background: var(--bg); padding: 18px 22px; border-radius: 22px; border: 1px solid rgba(255,255,255,0.09); min-width: 280px; box-shadow: 0 12px 30px rgba(0,0,0,0.35), 0 0 0 0.5px rgba(255,255,255,0.04); backdrop-filter: var(--glass); }
+        .light-mode.t-boxy #art-container,
+        .light-mode.t-boxy #info { border-color: rgba(0,0,0,0.08); box-shadow: 0 12px 30px rgba(0,0,0,0.08); }
+
+        /* =====================================================
+           GALLERY
+           ===================================================== */
+        .t-gallery { flex-direction: column; width: 320px; border-radius: 28px; background: var(--bg); border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 25px 50px rgba(0,0,0,0.4); backdrop-filter: var(--glass); }
+        .t-gallery #art-container { width: 320px; height: 320px; padding: 0; border: none; background: transparent; border-radius: 28px 28px 0 0; overflow: hidden; }
+        .t-gallery #info { padding: 20px; width: 100%; }
+        .light-mode.t-gallery { border-color: rgba(0,0,0,0.08); box-shadow: 0 25px 50px rgba(0,0,0,0.1); }
+
+        /* =====================================================
+           FLOAT — 3 separate floating boxes
+           ===================================================== */
+        .t-float {
+            flex-direction: column;
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            backdrop-filter: none !important;
+            padding: 0 !important;
+        }
+        .t-float #art-container,
+        .t-float #info { display: none !important; }
+
+        #float-chrome {
+            flex-direction: column;
+            gap: 6px;
+            width: 240px;
+            align-items: stretch;
+        }
+        .float-box {
+            background: rgba(22, 18, 34, 0.94);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45), 0 0 0 0.5px rgba(255,255,255,0.03);
+            backdrop-filter: saturate(180%) blur(20px);
+            -webkit-backdrop-filter: saturate(180%) blur(20px);
+        }
+        .light-mode .float-box {
+            background: rgba(250, 248, 254, 0.97);
+            border-color: rgba(0, 0, 0, 0.07);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+        }
+        #float-art-box { line-height: 0; }
+        #float-art {
+            width: 240px; height: 240px;
+            object-fit: cover; display: block;
+            border-radius: 18px;
+            transition: all 0.5s ease;
+        }
+        .t-float.c-vinyl #float-art {
+            border-radius: 50% !important;
+            animation: spin 8s linear infinite;
+            border: 4px solid #0f0f0f;
+            box-shadow: 0 0 16px rgba(0,0,0,0.5);
+        }
+        .t-float.paused.c-vinyl #float-art { animation-play-state: paused; }
+        .light-mode.t-float.c-vinyl #float-art { border-color: #e0ddd8; }
+        .t-float.c-none #float-art-box { display: none !important; }
+        #float-info-box { padding: 14px 16px 12px; }
+        #float-track {
+            margin: 0; font-size: 15px; font-weight: 700;
+            color: var(--track); white-space: nowrap;
+            overflow: hidden; text-overflow: ellipsis;
+        }
+        #float-artist {
+            margin: 4px 0 0; font-size: 12px;
+            color: var(--artist); font-weight: 500;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        #float-progress-box { padding: 12px 16px 14px; }
+        #float-bar-bg {
+            height: 3px; border-radius: 2px;
+            background: rgba(255, 255, 255, 0.12); overflow: hidden;
+        }
+        .light-mode #float-bar-bg { background: rgba(0, 0, 0, 0.1); }
+        #float-bar-fill {
+            height: 100%; background: var(--acc); width: 0%;
+            border-radius: 2px; transition: width 1s linear;
+        }
+        #float-times {
+            display: flex; justify-content: space-between;
+            font-size: 10px; margin-top: 8px; opacity: 0.55;
+            font-family: 'JetBrains Mono', monospace; font-weight: 600;
+            color: var(--artist);
+        }
+
+        /* =====================================================
+           MACOS
+           ===================================================== */
+        .t-macos {
+            flex-direction: column; width: 390px;
+            border-radius: 12px; overflow: hidden;
+            background: rgba(30, 28, 40, 0.97);
+            border: 1px solid rgba(255,255,255,0.10);
+            backdrop-filter: blur(40px) saturate(200%);
+            box-shadow: 0 16px 48px rgba(0,0,0,0.6), 0 0 0 0.5px rgba(255,255,255,0.05);
+        }
+        .light-mode.t-macos { background: rgba(236, 235, 241, 0.98); border-color: rgba(0,0,0,0.12); box-shadow: 0 16px 48px rgba(0,0,0,0.12); }
+        .t-macos #macos-bar {
+            width: 100%; height: 38px;
+            background: rgba(255,255,255,0.035);
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            flex-shrink: 0; align-items: center;
+            padding: 0 14px; gap: 7px;
+        }
+        .light-mode.t-macos #macos-bar { background: rgba(0,0,0,0.025); border-bottom-color: rgba(0,0,0,0.07); }
+        .t-macos #macos-bar span { width: 12px; height: 12px; border-radius: 50%; display: block; flex-shrink: 0; }
+        .t-macos #macos-bar .dot-red    { background: #ff5f57; }
+        .t-macos #macos-bar .dot-yellow { background: #ffbd2e; }
+        .t-macos #macos-bar .dot-green  { background: #28ca42; }
+        .t-macos #macos-content { display: flex; align-items: center; padding: 14px 16px 16px; gap: 14px; }
+        .t-macos.c-square #art { width: 58px; height: 58px; border-radius: 8px; display: block; flex-shrink: 0; }
+        .t-macos.c-vinyl  #art { width: 58px; height: 58px; }
+        /* macos-art mirrors cover mode — must be explicit since it has no #art-container wrapper */
+        .t-macos.c-square #macos-art { border-radius: 8px; }
+        .t-macos.c-vinyl  #macos-art {
+            border-radius: 50% !important;
+            animation: spin 8s linear infinite;
+            border: 3px solid #0f0f0f;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+        }
+        .t-macos.paused.c-vinyl #macos-art { animation-play-state: paused; }
+        .light-mode.t-macos.c-vinyl #macos-art { border-color: #e0ddd8; }
+        .t-macos.c-none #macos-art { display: none; }
+        .t-macos #info { flex-grow: 1; min-width: 0; }
+        .t-macos #track  { font-size: 14px; font-weight: 700; }
+        .t-macos #artist { font-size: 12px; margin-top: 3px; }
+        .t-macos #progress-wrapper { margin-top: 10px; }
+        .t-macos #bar-bg  { height: 4px; border-radius: 3px; }
+        .t-macos #times   { font-size: 10px; margin-top: 6px; }
+
+        /* =====================================================
+           SHELL — Linux terminal, NO macOS dots
+           ===================================================== */
+        .t-shell {
+            width: 470px; border-radius: 10px;
+            font-family: 'JetBrains Mono', monospace;
+            background: rgba(10, 10, 14, 0.97);
+            border: 1px solid rgba(255,255,255,0.09);
+            box-shadow: 0 16px 44px rgba(0,0,0,0.65), 0 0 0 0.5px rgba(255,255,255,0.04);
+            flex-direction: column; overflow: hidden;
+        }
+        .light-mode.t-shell { background: rgba(246, 245, 241, 0.99); border-color: #ccc9c0; box-shadow: 0 16px 44px rgba(0,0,0,0.08); }
+        .t-shell #shell-bar {
+            display: flex; align-items: center;
+            justify-content: center;
+            padding: 0 14px; height: 34px;
+            background: rgba(255,255,255,0.03);
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            flex-shrink: 0; position: relative;
+        }
+        .light-mode.t-shell #shell-bar { background: rgba(0,0,0,0.03); border-bottom-color: rgba(0,0,0,0.08); }
+        .t-shell #shell-title {
+            font-size: 11px; color: rgba(255,255,255,0.45); letter-spacing: 0.3px;
+        }
+        .light-mode.t-shell #shell-title { color: rgba(0,0,0,0.35); }
+        .t-shell #shell-close {
+            position: absolute; right: 14px;
+            font-size: 11px; color: rgba(255,255,255,0.25);
+            font-family: 'Inter', sans-serif; letter-spacing: 1px;
+        }
+        .light-mode.t-shell #shell-close { color: rgba(0,0,0,0.2); }
+        .t-shell #shell-body { padding: 16px 20px 18px; display: flex; flex-direction: column; gap: 4px; }
+        .t-shell #art-container, .t-shell #info { display: none !important; }
+        .t-shell .sh-prompt { font-size: 12.5px; font-weight: 400; white-space: pre; }
+        .t-shell .sh-prompt span.sh-host { color: var(--acc); font-weight: 400; }
+        .t-shell .sh-prompt span.sh-path { color: rgba(255,255,255,0.5); font-weight: 400; }
+        .light-mode.t-shell .sh-prompt span.sh-path { color: rgba(0,0,0,0.4); }
+        .t-shell .sh-line   { font-size: 12.5px; color: rgba(255,255,255,0.85); font-weight: 400; line-height: 1.6; }
+        .light-mode.t-shell .sh-line   { color: rgba(0,0,0,0.8); }
+        .t-shell .sh-label  { color: rgba(255,255,255,0.45); }
+        .light-mode.t-shell .sh-label  { color: rgba(0,0,0,0.4); }
+        .t-shell .sh-val    { color: #ffffff; font-weight: 400; }
+        .light-mode.t-shell .sh-val    { color: #000000; }
+        .t-shell #shell-bar-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+        .t-shell #shell-bracket-bar {
+            flex-grow: 1; font-size: 12px; font-family: 'JetBrains Mono', monospace;
+            color: var(--acc); letter-spacing: 0; white-space: nowrap; overflow: hidden;
+        }
+        .t-shell .sh-time { font-size: 11.5px; color: rgba(255,255,255,0.5); white-space: nowrap; }
+        .light-mode.t-shell .sh-time { color: rgba(0,0,0,0.4); }
+
+        /* =====================================================
+           NEON
+           ===================================================== */
+        .t-neon {
+            align-items: center; gap: 14px;
+            padding: 12px 18px; border-radius: 14px;
+            background: rgba(16, 14, 24, 0.95);
+            border: 1px solid rgba(255,255,255,0.07);
+            backdrop-filter: saturate(200%) blur(24px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.55), 0 0 0 0.5px rgba(255,255,255,0.05);
+            width: 430px;
+        }
+        .light-mode.t-neon { background: rgba(248, 246, 255, 0.95); border-color: rgba(0,0,0,0.06); box-shadow: 0 8px 32px rgba(0,0,0,0.08); }
+        .t-neon.c-square #art { width: 54px; height: 54px; border-radius: 9px; }
+        .t-neon.c-vinyl  #art { width: 54px; height: 54px; }
+        .t-neon.c-none #art-container { display: none !important; }
+        .t-neon #track  { font-size: 14px; font-weight: 800; color: var(--track); letter-spacing: -0.3px; }
+        .t-neon #artist { font-size: 11.5px; font-weight: 500; color: var(--artist); margin-top: 3px; }
+        .t-neon #progress-wrapper { margin-top: 10px; }
+        /* Slim accent bar sits under waveform */
+        .t-neon #bar-bg   { height: 2px; background: rgba(255,255,255,0.10); border-radius: 2px; overflow: hidden; }
+        .light-mode.t-neon #bar-bg { background: rgba(0,0,0,0.08); }
+        /* Waveform — always in DOM, shown only for neon */
+        #waveform { display: none; }
+        .t-neon #waveform {
+            display: flex; align-items: flex-end; gap: 2px;
+            height: 30px; width: 100%; margin: 0 0 5px;
+        }
+        .t-neon #waveform .wv-bar {
+            flex: 1; border-radius: 2px 2px 0 0;
+            background: var(--acc); min-width: 2px;
+            animation: wavePulse 0.8s ease-in-out infinite alternate;
+            transform-origin: bottom;
+        }
+        .t-neon.paused #waveform .wv-bar { animation-play-state: paused; }
+        @keyframes wavePulse {
+            from { transform: scaleY(0.15); opacity: 0.35; }
+            to   { transform: scaleY(1);    opacity: 1; }
+        }
+        .t-neon #times { font-size: 10.5px; margin-top: 5px; }
+
+        /* =====================================================
+           COVER APPEARANCES
+           ===================================================== */
+        #art-container { flex-shrink: 0; display: flex; align-items: center; justify-content: center; position: relative; }
+        #art { object-fit: cover; transition: all 0.5s ease; border-radius: 14px; }
+
+        .c-square #art { width: 80px; height: 80px; }
+        .t-gallery.c-square #art { width: 100%; height: 100%; border-radius: 28px 28px 0 0; }
+        .t-boxy.c-square #art { width: 90px; height: 90px; border-radius: 18px; }
+
+        /* ══════════════════════════════════════════════════════
+           VINYL RECORD — dark disc with grooves + center label
+           ══════════════════════════════════════════════════════ */
+        .c-vinyl #art-container {
+            position: relative; border-radius: 50%; overflow: hidden;
+            background:
+                radial-gradient(circle at 50% 50%, transparent 30%, rgba(255,255,255,0.022) 31%, transparent 32%),
+                radial-gradient(circle at 50% 50%, transparent 37%, rgba(255,255,255,0.018) 38%, transparent 39%),
+                radial-gradient(circle at 50% 50%, transparent 44%, rgba(255,255,255,0.022) 45%, transparent 46%),
+                radial-gradient(circle at 50% 50%, transparent 51%, rgba(255,255,255,0.018) 52%, transparent 53%),
+                radial-gradient(circle at 50% 50%, transparent 58%, rgba(255,255,255,0.022) 59%, transparent 60%),
+                radial-gradient(circle at 50% 50%, transparent 65%, rgba(255,255,255,0.018) 66%, transparent 67%),
+                radial-gradient(circle at 50% 50%, transparent 72%, rgba(255,255,255,0.022) 73%, transparent 74%),
+                radial-gradient(circle at 50% 50%, transparent 79%, rgba(255,255,255,0.015) 80%, transparent 81%),
+                linear-gradient(135deg, #1c1c1c 0%, #0d0d0d 100%);
+            animation: spin 8s linear infinite;
+            width: 80px; height: 80px; /* default, overridden per theme */
+        }
+        /* Center label = the album art */
+        .c-vinyl #art {
+            position: absolute !important; top: 50% !important; left: 50% !important;
+            transform: translate(-50%, -50%) !important;
+            width: 44% !important; height: 44% !important;
+            border-radius: 50% !important;
+            border: none !important; box-shadow: 0 0 0 1px rgba(0,0,0,0.6) !important;
+            animation: none !important;
+        }
+        /* Center hole */
+        .c-vinyl #art-container::after {
+            content: ''; position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 8%; height: 8%; min-width: 4px; min-height: 4px;
+            border-radius: 50%; background: #080808; z-index: 10;
+            pointer-events: none;
+        }
+        /* Disc size per theme */
+        .t-compact.c-vinyl  #art-container { width: 68px;  height: 68px;  }
+        .t-boxy.c-vinyl     #art-container { width: 96px;  height: 96px;  }
+        .t-neon.c-vinyl     #art-container { width: 58px;  height: 58px;  }
+        .t-macos.c-vinyl    #art-container { width: 60px;  height: 60px;  }
+        .t-gallery.c-vinyl  #art-container { width: 270px; height: 270px; margin: 25px auto 0; }
+
+        /* Tonearm (gallery + float only — other themes too small) */
+        #vinyl-arm {
+            display: none; position: absolute;
+            pointer-events: none; z-index: 30;
+            filter: drop-shadow(0 2px 6px rgba(0,0,0,0.7));
+            overflow: visible;
+        }
+        .t-gallery.c-vinyl  #vinyl-arm { display: block; width: 62px; height: 145px; right: -8px;  top: 14px; }
+        .t-float.c-vinyl    #vinyl-arm { display: block; width: 50px; height: 115px; right: -6px;  top: 10px; }
+
+        /* Float vinyl overrides (uses #float-art not #art-container) */
+        .t-float.c-vinyl #float-art {
+            border-radius: 50% !important; animation: spin 8s linear infinite;
+            border: 3px solid #0f0f0f; box-shadow: 0 0 12px rgba(0,0,0,0.5);
+        }
+        .t-float.paused.c-vinyl #float-art { animation-play-state: paused; }
+        .light-mode.t-float.c-vinyl #float-art { border-color: #e0ddd8; }
+
+        /* macOS vinyl uses #macos-art */
+        .t-macos.c-vinyl #macos-art {
+            border-radius: 50% !important; animation: spin 8s linear infinite;
+            border: 3px solid #0f0f0f; box-shadow: 0 0 10px rgba(0,0,0,0.5);
+        }
+        .t-macos.paused.c-vinyl #macos-art { animation-play-state: paused; }
+        .light-mode.t-macos.c-vinyl #macos-art { border-color: #e0ddd8; }
+
+        /* Pause stops the disc from spinning */
+        .paused .c-vinyl #art-container { animation-play-state: paused; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        .c-none #art-container { display: none !important; }
+
+        /* ════════════════════════════════════════════════════
+           NOTIFICATION THEME
+           Shows as a toast that slides in when a new song starts.
+           The widget is invisible until triggered by a track change.
+           ════════════════════════════════════════════════════ */
+        .t-notif {
+            background: transparent !important; border: none !important;
+            box-shadow: none !important; backdrop-filter: none !important;
+            padding: 0 !important; margin: 8px !important;
+        }
+        .t-notif #art-container, .t-notif #info { display: none !important; }
+
+        #notif-chrome {
+            display: none; align-items: center; gap: 14px;
+            width: 360px; padding: 14px 16px;
+            background: rgba(20, 17, 30, 0.96);
+            border: 1px solid rgba(255,255,255,0.10);
+            border-radius: 18px;
+            backdrop-filter: saturate(180%) blur(28px);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.55), 0 0 0 0.5px rgba(255,255,255,0.05);
+            transform: translateY(-110%);
+            opacity: 0;
+            transition: transform 0.5s cubic-bezier(0.34, 1.46, 0.64, 1), opacity 0.3s ease;
+            position: relative; overflow: hidden;
+        }
+        .light-mode #notif-chrome {
+            background: rgba(250, 249, 255, 0.97);
+            border-color: rgba(0,0,0,0.09);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.12);
+        }
+        #notif-chrome.notif-in  { transform: translateY(0);     opacity: 1; }
+        #notif-chrome.notif-out { transform: translateY(-110%); opacity: 0;
+            transition: transform 0.4s cubic-bezier(0.4,0,0.6,1), opacity 0.3s ease; }
+
+        #notif-art {
+            width: 46px; height: 46px; border-radius: 10px;
+            object-fit: cover; flex-shrink: 0;
+        }
+        .t-notif.c-vinyl #notif-art {
+            border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.15);
+        }
+        .t-notif.c-none #notif-art { display: none; }
+        #notif-body { flex: 1; min-width: 0; }
+        #notif-label {
+            font-size: 8.5px; font-weight: 800; letter-spacing: 0.14em;
+            text-transform: uppercase; color: var(--acc); margin: 0 0 4px;
+            display: flex; align-items: center; gap: 5px;
+        }
+        #notif-label::before { content: '♫'; font-size: 9px; }
+        #notif-track {
+            margin: 0; font-size: 13.5px; font-weight: 800;
+            color: var(--track); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            letter-spacing: -0.2px;
+        }
+        #notif-artist {
+            margin: 2px 0 0; font-size: 11px; font-weight: 500;
+            color: var(--artist); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        /* Accent line at bottom of notification */
+        #notif-progress {
+            position: absolute; bottom: 0; left: 0; right: 0; height: 2.5px;
+            border-radius: 0 0 18px 18px;
+            background: var(--acc); opacity: 0.7;
+        }
+
+
+
+        /* ══════════════════════════════════════════════════════════════
+           GLOW SYSTEM
+           • Cover Glow  (.glow)  → accent-colored drop-shadow FROM the art
+           • Contrast Glow (.wglow) → white drop-shadow FROM the art
+           Both use filter:drop-shadow on the art element of each theme.
+           Shell exception: no art → neon text-shadow on prompt text.
+           ══════════════════════════════════════════════════════════════ */
+
+        /* ── Compact / Boxy / Neon → standard #art (opt-in list) ────── */
+        /* To add glow to a new theme that uses #art, add its .t-<id> here */
+        #widget.glow.t-compact  #art,
+        #widget.glow.t-boxy     #art,
+        #widget.glow.t-neon     #art { filter: drop-shadow(0 0 14px var(--acc)); }
+
+        #widget.wglow.t-compact #art,
+        #widget.wglow.t-boxy    #art,
+        #widget.wglow.t-neon    #art { filter: drop-shadow(0 0 14px var(--glow-color, #ffffff)); }
+
+        #widget.glow.wglow.t-compact #art,
+        #widget.glow.wglow.t-boxy    #art,
+        #widget.glow.wglow.t-neon    #art {
+            filter: drop-shadow(0 0 14px var(--acc)) drop-shadow(0 0 6px var(--glow-color, #ffffff));
+        }
+
+        /* ── Gallery → inset box-shadow on #art-container
+           (overflow:hidden clips inset to the cover art bounds — creates inner rim glow) */
+        #widget.glow.t-gallery  #art-container { box-shadow: inset 0 0 40px 12px var(--acc); }
+        #widget.wglow.t-gallery #art-container { box-shadow: inset 0 0 40px 12px var(--glow-color, #ffffff); }
+        #widget.glow.wglow.t-gallery #art-container {
+            box-shadow: inset 0 0 40px 12px var(--acc), inset 0 0 16px 4px var(--glow-color, #ffffff);
+        }
+
+        /* ── Float → box-shadow on #float-art
+           (filter:drop-shadow inside backdrop-filter parent breaks in Chromium/OBS;
+            box-shadow follows border-radius:18px/50% and is unaffected by compositing) */
+        #widget.glow.t-float  #float-art { box-shadow: 0 0 18px 4px var(--acc); }
+        #widget.wglow.t-float #float-art { box-shadow: 0 0 18px 4px var(--glow-color, #ffffff); }
+        #widget.glow.wglow.t-float #float-art {
+            box-shadow: 0 0 18px 4px var(--acc), 0 0 6px 1px var(--glow-color, #ffffff);
+        }
+
+        /* ── macOS → drop-shadow on #macos-art ───────────────────────── */
+        #widget.glow.t-macos  #macos-art { filter: drop-shadow(0 0 12px var(--acc)); }
+        #widget.wglow.t-macos #macos-art { filter: drop-shadow(0 0 12px var(--glow-color, #ffffff)); }
+        #widget.glow.wglow.t-macos #macos-art {
+            filter: drop-shadow(0 0 12px var(--acc)) drop-shadow(0 0 5px var(--glow-color, #ffffff));
+        }
+
+        /* ── Shell → no art; neon glow on prompt text ─────────────────── */
+        #widget.glow.t-shell  .sh-host { text-shadow: 0 0 8px var(--acc), 0 0 20px var(--acc); }
+        #widget.glow.t-shell  .sh-val  { text-shadow: 0 0 6px color-mix(in srgb, var(--acc) 60%, transparent); }
+        #widget.wglow.t-shell .sh-host { text-shadow: 0 0 8px var(--glow-color), 0 0 20px color-mix(in srgb, var(--glow-color) 50%, transparent); }
+        #widget.wglow.t-shell .sh-val  { text-shadow: 0 0 6px color-mix(in srgb, var(--glow-color) 45%, transparent); }
+        #widget.glow.wglow.t-shell .sh-host {
+            text-shadow: 0 0 8px var(--acc), 0 0 20px var(--acc), 0 0 4px var(--glow-color);
+        }
+
+        /* =====================================================
+           THEME CHROME VISIBILITY
+           All theme-specific containers are hidden by default.
+           The active .t-* class on #widget shows the right one.
+           This replaces fragile inline style toggling in JS.
+           ===================================================== */
+
+        /* Hidden by default — only shown when their theme class is active */
+        #macos-bar,
+        #macos-content  { display: none; }
+        #shell-chrome   { display: none; }
+        #float-chrome   { display: none; }
+        /* #notif-chrome already has display:none in its own section above */
+
+        /* Hide standard art+info for themes that use their own chrome */
+        .t-macos #art-container,
+        .t-macos #info { display: none !important; }
+
+        /* Show chrome when theme is active */
+        .t-macos #macos-bar     { display: flex !important; }
+        .t-macos #macos-content { display: flex !important; }
+
+        .t-shell #shell-chrome {
+            display: flex !important;
+            flex-direction: column;
+            width: 460px;
+        }
+
+        .t-float #float-chrome {
+            display: flex !important;
+            flex-direction: column;
+            gap: 8px;
+            width: 240px;
+            align-items: stretch;
+        }
+
+        /* =====================================================
+           BASE ELEMENTS
+           ===================================================== */
+        #info { flex-grow: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; z-index: 2; }
+        #track  { margin: 0; font-weight: 800; font-size: 1.08em; color: var(--track); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: -0.3px; }
+        #artist { margin: 3px 0 0 0; font-size: 0.86em; color: var(--artist); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        #progress-wrapper { margin-top: 11px; width: 100%; }
+        #bar-bg   { height: 4px; background: rgba(128,128,128,0.18); border-radius: 10px; overflow: hidden; }
+        #bar-fill { height: 100%; background: var(--acc); width: 0%; border-radius: 10px; transition: width 1s linear; }
+        #times    { display: flex; justify-content: space-between; font-size: 10.5px; margin-top: 5px; color: var(--artist); font-family: 'JetBrains Mono', monospace; font-weight: 600; opacity: 0.8; }
+
+        /* ─── Paused state ───────────────────────────────────────────────── */
+        .paused { opacity: 0.8; transition: opacity 0.4s ease; }
+
+        /* Pause indicator badge — shows bottom-right when paused */
+        #pause-indicator {
+            display: none; position: absolute;
+            bottom: 9px; right: 11px; z-index: 50;
+            font-size: 8.5px; font-weight: 800; letter-spacing: 0.1em;
+            padding: 2px 7px; border-radius: 5px;
+            background: rgba(0,0,0,0.35); color: rgba(255,255,255,0.45);
+            text-transform: uppercase; pointer-events: none;
+            backdrop-filter: blur(4px);
+        }
+        .light-mode #pause-indicator { background: rgba(255,255,255,0.4); color: rgba(0,0,0,0.4); }
+        .paused #pause-indicator { display: block; }
+        .t-shell #pause-indicator { bottom: 14px; right: 14px; }
+        .t-notif #pause-indicator { display: none !important; }
+
+        /* ─── Hide when paused ───────────────────────────────────────────── */
+        #widget.hide-paused.paused {
+            opacity: 0 !important; pointer-events: none; transition: opacity 0.6s ease;
+        }
+
+
