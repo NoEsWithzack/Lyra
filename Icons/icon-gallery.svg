@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
+  <!-- Tall card -->
+  <rect x="5" y="2" width="14" height="20" rx="3" stroke="currentColor" stroke-width="1.5"/>
+  <!-- Large art area -->
+  <rect x="7" y="4" width="10" height="10" rx="1.5" stroke="currentColor" stroke-width="1" opacity="0.5"/>
+  <!-- Text lines at bottom -->
+  <line x1="7.5" y1="17" x2="16.5" y2="17" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+  <line x1="7.5" y1="19.5" x2="14" y2="19.5" stroke="currentColor" stroke-width="1" stroke-linecap="round" opacity="0.5"/>
+</svg>
