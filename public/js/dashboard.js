@@ -32,7 +32,7 @@ const dashI18n = {
         player_all:       "All Players",
         label_font:       "Font",
         label_presets:    "Presets",
-        label_accent:     "Accent & Plugins",
+        label_accent:     "Accent & Effects",
         label_hostname:   "Shell Command",
         label_bg:         "Preview Background",
         t_compact:"Compact", t_boxy:"Boxy", t_gallery:"Gallery",
@@ -79,7 +79,7 @@ const dashI18n = {
         player_all:       "Todos",
         label_font:       "Fuente",
         label_presets:    "Preajustes",
-        label_accent:     "Acento y Plugins",
+        label_accent:     "Acento y Efectos",
         label_hostname:   "Comando Shell",
         label_bg:         "Fondo de Vista Previa",
         t_compact:"Compacto", t_boxy:"Cajón", t_gallery:"Galería",
@@ -578,10 +578,19 @@ const OBS_SIZES = {
     gallery: [370, 480],
     macos:   [450, 150],
     shell:   [510, 190],
-    neon:    [470, 130],
+    neon:    [490, 140],
     float:   [290, 420],
-    notif:   [400, 100],
+    notif:   [460, 120],
 };
+
+// Fix 4: Cover Glow and Contrast Glow are mutually exclusive
+function onGlowChange(which) {
+    const glowEl  = document.getElementById('glow');
+    const wglowEl = document.getElementById('wglow');
+    if (which === 'glow' && glowEl.checked)  wglowEl.checked = false;
+    if (which === 'wglow' && wglowEl.checked) glowEl.checked = false;
+    update();
+}
 
 let _updateTimer = null;
 

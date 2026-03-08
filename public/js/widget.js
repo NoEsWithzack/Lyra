@@ -217,23 +217,29 @@ function updateUI() {
     }
 
     // ── Shell-specific rendering ────────────────────────────────────────────
-    const fullCmd    = config.hostname || 'root@user:~$ ./user --nowplaying';
-    const titlebarHost = fullCmd.split(':')[0].trim() || fullCmd;
-    $('shell-title').innerText = titlebarHost;
+    const fullCmd = config.hostname || 'root@user:~$ ./user --nowplaying';
+    const separator = ":~$ ";
+    const splitIdx = fullCmd.indexOf(separator);
 
-    const splitIdx = fullCmd.indexOf(':~$ ');
     let cmdHTML;
     if (splitIdx !== -1) {
         const hostPart = fullCmd.substring(0, splitIdx);
-        const pathPart = ':~$ ';
-        const restPart = fullCmd.substring(splitIdx + 4);
-        cmdHTML =
+        const restPart = fullCmd.substring(splitIdx + separator.length);
+        
+        // This creates three segments: the host (colored), the prompt (muted), and the command (muted)
+        cmdHTML = 
             `<span class="sh-host">${hostPart}</span>` +
-            `<span class="sh-path">${pathPart}</span>` +
+            `<span class="sh-path">${separator}</span>` +
             `<span class="sh-path">${restPart}</span>`;
+            
+        // Update the window title to just show the user/host part
+        $('shell-title').innerText = hostPart.split(':')[0] || "Terminal";
     } else {
+        // Fallback if the user typed something custom without the :~$ 
         cmdHTML = `<span class="sh-host">${fullCmd}</span>`;
+        $('shell-title').innerText = fullCmd.split(':')[0] || "Terminal";
     }
+
     $('sh-cmd').innerHTML = cmdHTML;
     setText('sh-title-label',  tr('sh_title'));
     setText('sh-artist-label', tr('sh_artist'));
@@ -367,10 +373,7 @@ function updateBracketBar(position, duration) {
     el.innerText = '[' + '#'.repeat(filled) + '-'.repeat(COLS - filled) + ']';
 }
 
-// ─── Progress tick ──────────────────────────────────────────────────────────
-// R2: One loop replaces 8 manual DOM writes
-
-// ─── Progress tick (60 FPS Smooth Engine) ───────────────────────────────────
+/// ─── Progress tick (60 FPS Smooth Engine) ───────────────────────────────────
 
 function tick() {
     if (playing && dur > 0) {
@@ -406,5 +409,3 @@ function tick() {
 
 // Iniciar el ciclo de renderizado
 requestAnimationFrame(tick);
-
-updateUI();

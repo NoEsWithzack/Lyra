@@ -1,6 +1,6 @@
 {
   "name": "lyra",
-  "version": "0.4.0",
+  "version": "1.0.0",
   "description": "Music overlay for streamers and content creators — self-hosted, OBS-ready, fully customizable.",
   "main": "server.js",
   "scripts": {

@@ -1,15 +1,13 @@
 'use strict';
 
-const fs   = require('fs');
+const fs = require('fs').promises;
 const path = require('path');
-const os   = require('os');
+const os = require('os');
 const crypto = require('crypto');
 
 const LOG_DIR    = path.join(os.homedir(), '.config', 'lyra', 'logs');
 const SESSION_ID = crypto.randomUUID();
 
-// ─── Error code registry ────────────────────────────────────────────────────
-// See ROADMAP Section 7 for the full specification.
 const CODES = {
     MPRIS_CONNECTION_FAILED: 'D-Bus session bus unavailable',
     MPRIS_PLAYER_LOST:       'Player disconnected mid-session',
@@ -22,17 +20,15 @@ const CODES = {
     UNHANDLED_REJECTION:     'Unhandled async rejection',
 };
 
-// ─── Write structured error report to disk ──────────────────────────────────
-
-function writeErrorReport(code, error, context = {}) {
+async function writeErrorReport(code, error, context = {}) {
     try {
-        fs.mkdirSync(LOG_DIR, { recursive: true });
+        await fs.mkdir(LOG_DIR, { recursive: true });
     } catch(e) {
         console.error('[Lyra] Could not create log directory:', e.message);
         return null;
     }
 
-    let version = '0.4.0';
+    let version = '1.0.0';
     try { version = require('../../package.json').version; } catch(e) {}
 
     const report = {
@@ -57,38 +53,32 @@ function writeErrorReport(code, error, context = {}) {
     const filepath = path.join(LOG_DIR, filename);
 
     try {
-        fs.writeFileSync(filepath, JSON.stringify(report, null, 2));
-        console.error(`[Lyra] Error logged: ${code} → ${filename}`);
+        await fs.writeFile(filepath, JSON.stringify(report, null, 2));
+        console.log(`[Lyra] Error logged: ${code} → ${filename}`);
+        
+        if (global.lyraWSS) {
+            const notification = JSON.stringify({ type: 'ERROR_REPORT', code, filename });
+            global.lyraWSS.clients.forEach(c => {
+                if (c.readyState === 1) {
+                    try { c.send(notification); } catch(e) {}
+                }
+            });
+        }
     } catch(e) {
         console.error('[Lyra] Could not write error report:', e.message);
         return null;
     }
 
-    // Notify dashboard via WebSocket
-    if (global.lyraWSS) {
-        const notification = JSON.stringify({ type: 'ERROR_REPORT', code, filename });
-        global.lyraWSS.clients.forEach(c => {
-            if (c.readyState === 1) {
-                try { c.send(notification); } catch(e) {}
-            }
-        });
-    }
-
     return filename;
 }
 
-// ─── Convenience wrappers ───────────────────────────────────────────────────
-
 function reportError(code, error, context) {
-    return writeErrorReport(code, error instanceof Error ? error : new Error(String(error)), context);
+    writeErrorReport(code, error instanceof Error ? error : new Error(String(error)), context);
 }
-
-// ─── Global handlers ────────────────────────────────────────────────────────
 
 function init() {
     process.on('uncaughtException', (err) => {
         writeErrorReport('UNCAUGHT_EXCEPTION', err);
-        // Don't re-throw — let the process survive non-fatal errors
     });
 
     process.on('unhandledRejection', (reason) => {

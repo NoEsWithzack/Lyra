@@ -1,19 +1,23 @@
 'use strict';
 
-const fs = require('fs');
+const fs = require('fs').promises;
 const { PRESETS_FILE } = require('../config');
 
-function loadPresetsFile() {
+// Whitelist of valid config keys - only these get saved to your disk
+const VALID_CONFIG_KEYS = ['t', 'c', 'm', 'lang', 'acc', 'magic', 'glow', 'wglow', 'hostname', 'player', 'font', 'hide_paused', 'background'];
+
+async function loadPresetsFile() {
     try {
-        if (fs.existsSync(PRESETS_FILE))
-            return JSON.parse(fs.readFileSync(PRESETS_FILE, 'utf8'));
-    } catch(e) { console.warn('[Lyra] Could not read presets.json:', e.message); }
-    return {};
+        const data = await fs.readFile(PRESETS_FILE, 'utf8');
+        return JSON.parse(data);
+    } catch(e) { 
+        return {}; 
+    }
 }
 
-function savePresetsFile(presets) {
+async function savePresetsFile(presets) {
     try {
-        fs.writeFileSync(PRESETS_FILE, JSON.stringify(presets, null, 2), 'utf8');
+        await fs.writeFile(PRESETS_FILE, JSON.stringify(presets, null, 2), 'utf8');
         return true;
     } catch(e) {
         console.error('[Lyra] Could not write presets.json:', e.message);
@@ -21,25 +25,32 @@ function savePresetsFile(presets) {
     }
 }
 
-/**
- * Register preset routes on the Express app.
- */
 function register(app) {
     // GET /api/presets
-    app.get('/api/presets', (req, res) => {
-        res.json({ presets: loadPresetsFile() });
+    app.get('/api/presets', async (req, res) => {
+        const presets = await loadPresetsFile();
+        res.json({ presets });
     });
 
-    // POST /api/presets — body: { name: string, config: object }
-    app.post('/api/presets', (req, res) => {
+    // POST /api/presets
+    app.post('/api/presets', async (req, res) => {
         const { name, config } = req.body || {};
         if (!name || typeof name !== 'string' || !config) {
             return res.status(400).json({ error: 'name and config required' });
         }
+
+        // Clean the data: only keep what we know the widget uses
+        const cleanConfig = {};
+        VALID_CONFIG_KEYS.forEach(key => {
+            if (config[key] !== undefined) cleanConfig[key] = config[key];
+        });
+
         const safe = name.trim().slice(0, 64);
-        const presets = loadPresetsFile();
-        presets[safe] = { ...config, savedAt: new Date().toISOString() };
-        if (savePresetsFile(presets)) {
+        const presets = await loadPresetsFile();
+        
+        presets[safe] = { ...cleanConfig, savedAt: new Date().toISOString() };
+        
+        if (await savePresetsFile(presets)) {
             console.log(`[Lyra] Preset saved: "${safe}"`);
             res.json({ ok: true, name: safe });
         } else {
@@ -48,12 +59,13 @@ function register(app) {
     });
 
     // DELETE /api/presets/:name
-    app.delete('/api/presets/:name', (req, res) => {
+    app.delete('/api/presets/:name', async (req, res) => {
         const name = req.params.name;
-        const presets = loadPresetsFile();
+        const presets = await loadPresetsFile();
         if (!presets[name]) return res.status(404).json({ error: 'Preset not found' });
+        
         delete presets[name];
-        savePresetsFile(presets);
+        await savePresetsFile(presets);
         console.log(`[Lyra] Preset deleted: "${name}"`);
         res.json({ ok: true });
     });

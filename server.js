@@ -1,31 +1,56 @@
 'use strict';
 
 const express = require('express');
-const http    = require('http');
-const path    = require('path');
+const path = require('path');
+const http = require('http');
 const { PORT } = require('./src/config');
 
-// ─── Error reporting (must init before anything else) ────────────────────────
-require('./src/services/errors').init();
+// Load Services
+const errors = require('./src/services/errors');
+const broadcast = require('./src/services/broadcast');
 
-// ─── Express app ─────────────────────────────────────────────────────────────
+// Load Routes
+const playersRoute = require('./src/routes/players');
+const fontsRoute = require('./src/routes/fonts');
+const presetsRoute = require('./src/routes/presets');
+const pluginsRoute = require('./src/routes/plugins');
+
 const app = express();
-app.use(express.json());
-app.use(express.static(__dirname));
-
-// Page routes
-app.get('/',       (req, res) => res.sendFile(path.join(__dirname, 'dashboard.html')));
-app.get('/widget', (req, res) => res.sendFile(path.join(__dirname, 'widget.html')));
-
-// API routes — each module self-registers its endpoints
-require('./src/routes/fonts').register(app);
-require('./src/routes/presets').register(app);
-require('./src/routes/plugins').register(app);
-require('./src/routes/players').register(app);
-
-// ─── HTTP + WebSocket server ─────────────────────────────────────────────────
 const server = http.createServer(app);
-require('./src/services/broadcast').init(server);
 
-server.listen(PORT, () =>
-    console.log(`✅ Lyra running at http://localhost:${PORT}`));
+// Initialize system-wide error reporting
+errors.init();
+
+app.use(express.json());
+
+// ─── Serve Static Files ─────────────────────────────────────────────────────
+// This tells the server that all our HTML/CSS/JS is now in the 'public' folder
+app.use(express.static(path.join(__dirname, 'public')));
+
+// ─── Pages ──────────────────────────────────────────────────────────────────
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
+});
+
+app.get('/widget', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'widget.html'));
+});
+
+// ─── API Routes ─────────────────────────────────────────────────────────────
+playersRoute.register(app);
+fontsRoute.register(app);
+presetsRoute.register(app);
+pluginsRoute.register(app);
+
+// ─── WebSocket Server ───────────────────────────────────────────────────────
+broadcast.init(server);
+
+server.listen(PORT, () => {
+    console.log(`
+        🎵 Lyra v1.0.0 is ready!
+
+    ---------------------------------------
+        URL: http://localhost:${PORT}
+    ---------------------------------------
+    `);
+});
