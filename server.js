@@ -14,6 +14,7 @@ const playersRoute = require('./src/routes/players');
 const fontsRoute = require('./src/routes/fonts');
 const presetsRoute = require('./src/routes/presets');
 const pluginsRoute = require('./src/routes/plugins');
+const backgroundsRoute = require('./src/routes/backgrounds');
 
 const app = express();
 const server = http.createServer(app);
@@ -21,7 +22,8 @@ const server = http.createServer(app);
 // Initialize system-wide error reporting
 errors.init();
 
-app.use(express.json());
+// This allows the server to accept images up to 10MB
+app.use(express.json({ limit: '50mb' }));
 
 // ─── Serve Static Files ─────────────────────────────────────────────────────
 // This tells the server that all our HTML/CSS/JS is now in the 'public' folder
@@ -41,6 +43,7 @@ playersRoute.register(app);
 fontsRoute.register(app);
 presetsRoute.register(app);
 pluginsRoute.register(app);
+backgroundsRoute.register(app);
 
 // ─── WebSocket Server ───────────────────────────────────────────────────────
 broadcast.init(server);
