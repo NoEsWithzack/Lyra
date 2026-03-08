@@ -57,6 +57,7 @@ const img     = $('art');
 const currEl  = $('curr');
 const totalEl = $('total');
 let pos = 0, dur = 0, playing = false;
+let lastSyncTime = Date.now(); // NUEVO: rastrea el tiempo exacto del servidor
 let currentTitle = "", currentArtist = "";
 
 // Notification state — declared here because setLayout() needs to clear timers
@@ -166,15 +167,19 @@ function applyFont(fontName) {
 // ═════════════════════════════════════════════════════════════════════════════
 
 function updateUI() {
-    w.className = [
-        `t-${config.t}`,
-        `c-${config.c}`,
-        `${config.m}-mode`,
-        (currentTitle && !playing) ? 'paused' : null,
-        config.glow           ? 'glow'         : null,
-        config.wglow          ? 'wglow'        : null,
-        config.hide_paused    ? 'hide-paused'  : null,
-    ].filter(Boolean).join(' ');
+    // 1. Encontrar y eliminar solo las clases propias de Lyra (protege los futuros plugins)
+    const oldClasses = Array.from(w.classList).filter(c => 
+        c.startsWith('t-') || c.startsWith('c-') || c.endsWith('-mode') || 
+        ['paused', 'glow', 'wglow', 'hide-paused'].includes(c)
+    );
+    oldClasses.forEach(c => w.classList.remove(c));
+
+    // 2. Agregar las nuevas clases de la configuración actual
+    w.classList.add(`t-${config.t}`, `c-${config.c}`, `${config.m}-mode`);
+    if (currentTitle && !playing) w.classList.add('paused');
+    if (config.glow) w.classList.add('glow');
+    if (config.wglow) w.classList.add('wglow');
+    if (config.hide_paused) w.classList.add('hide-paused');
 
     setLayout();
 
@@ -330,6 +335,7 @@ function connectWS() {
         pos = data.position || 0;
         dur = data.length   || 0;
         playing = data.playing || false;
+        lastSyncTime = Date.now(); // NUEVO: Reinicia el reloj cada vez que el servidor habla
 
         // R2: Update total time across all display sets + shell
         const fmtDur = fmt(dur);
@@ -364,21 +370,41 @@ function updateBracketBar(position, duration) {
 // ─── Progress tick ──────────────────────────────────────────────────────────
 // R2: One loop replaces 8 manual DOM writes
 
-setInterval(() => {
-    if (playing && pos < dur) {
-        pos++;
-        const pct = (dur > 0 ? (pos / dur) * 100 : 0) + "%";
+// ─── Progress tick (60 FPS Smooth Engine) ───────────────────────────────────
 
-        // Update all progress bars and current times via registry
+function tick() {
+    if (playing && dur > 0) {
+        // Calcula exactamente cuánto tiempo ha pasado desde el último mensaje del WebSocket
+        const elapsedSeconds = (Date.now() - lastSyncTime) / 1000;
+        let visualPos = pos + elapsedSeconds;
+
+        // Evita que la barra se desborde antes de que el servidor confirme el cambio de canción
+        if (visualPos > dur) visualPos = dur;
+
+        const pct = (visualPos / dur) * 100 + "%";
+        const flooredPos = Math.floor(visualPos); // Para los textos (1:23)
+
+        // Actualiza el DOM usando el registro DISPLAY_SETS
         DISPLAY_SETS.forEach(s => {
             setWidth(s.barFill, pct);
-            setText(s.curr, fmt(pos));
+            // Solo actualiza el texto si cambió el segundo entero para no estresar el DOM
+            if ($(s.curr) && $(s.curr).innerText !== fmt(flooredPos)) {
+                setText(s.curr, fmt(flooredPos));
+            }
         });
 
-        // Shell uses bracket bar instead of percentage bar
-        setText('sh-curr', fmt(pos));
-        updateBracketBar(pos, dur);
+        // Actualizaciones específicas para el tema Shell
+        if ($('sh-curr') && $('sh-curr').innerText !== fmt(flooredPos)) {
+            setText('sh-curr', fmt(flooredPos));
+        }
+        updateBracketBar(visualPos, dur);
     }
-}, 1000);
+    
+    // Pide al navegador que ejecute esto en el próximo frame de renderizado (~60fps)
+    requestAnimationFrame(tick);
+}
+
+// Iniciar el ciclo de renderizado
+requestAnimationFrame(tick);
 
 updateUI();

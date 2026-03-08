@@ -5,6 +5,9 @@ const http    = require('http');
 const path    = require('path');
 const { PORT } = require('./src/config');
 
+// ─── Error reporting (must init before anything else) ────────────────────────
+require('./src/services/errors').init();
+
 // ─── Express app ─────────────────────────────────────────────────────────────
 const app = express();
 app.use(express.json());

@@ -14,6 +14,7 @@ const state = {
 // Font state
 let _lastPlayer     = '';
 let _selectedFont   = '';
+let _currentBg      = 'concert';
 
 // Iframe readiness — prevents lost postMessages during reload
 let _iframeReady    = false;
@@ -33,6 +34,7 @@ const dashI18n = {
         label_presets:    "Presets",
         label_accent:     "Accent & Plugins",
         label_hostname:   "Shell Command",
+        label_bg:         "Preview Background",
         t_compact:"Compact", t_boxy:"Boxy", t_gallery:"Gallery",
         t_macos:"macOS", t_shell:"Shell", t_neon:"Neon", t_chill:"Float", t_notif:"Alert",
         c_square:"Square", c_vinyl:"Vinyl", c_none:"None",
@@ -79,6 +81,7 @@ const dashI18n = {
         label_presets:    "Preajustes",
         label_accent:     "Acento y Plugins",
         label_hostname:   "Comando Shell",
+        label_bg:         "Fondo de Vista Previa",
         t_compact:"Compacto", t_boxy:"Cajón", t_gallery:"Galería",
         t_macos:"macOS", t_shell:"Terminal", t_neon:"Neón", t_chill:"Flotante", t_notif:"Alerta",
         c_square:"Cuadrado", c_vinyl:"Vinilo", c_none:"Ninguno",
@@ -366,6 +369,13 @@ async function loadPreset() {
         [`t-${state.theme}`,`c-${state.cover}`,`m-${state.mode}`,`l-${state.lang}`].forEach(id => {
             const el = document.getElementById(id); if (el) el.classList.add('active');
         });
+
+        // Restore background from preset
+        if (cfg.background && cfg.background !== 'custom') {
+            const bgBtn = document.querySelector(`#bg-grid [data-bg="${cfg.background}"]`);
+            setBg(cfg.background, bgBtn);
+        }
+
         applyDashLang(); update();
         showToast(`✅ Loaded "${name}"`);
     } catch(e) { showToast('Load failed'); }
@@ -397,7 +407,114 @@ function currentConfig() {
         player:      document.getElementById('player-select').value || '',
         font:        _selectedFont || '',
         hide_paused: document.getElementById('hide_paused').checked,
+        background:  _currentBg,
     };
+}
+
+// ─── Preview Background (1.4) ───────────────────────────────────────────────
+// Affects dashboard preview only — NOT the OBS widget output.
+// Built-in options + custom image upload stored in localStorage.
+
+const BG_PRESETS = ['concert', 'dark', 'charcoal', 'purple', 'teal', 'amber', 'none', 'custom'];
+
+function setBg(key, el) {
+    if (key === 'custom' && !_hasCustomBg()) return;  // triggerBgUpload handles this
+    _currentBg = key;
+    applyBg(key);
+    // Update active states in bg grid
+    document.querySelectorAll('#bg-grid .opt').forEach(o => o.classList.remove('active'));
+    if (el) el.classList.add('active');
+    try { localStorage.setItem('lyra-bg', key); } catch(e) {}
+}
+
+function applyBg(key) {
+    const box = document.getElementById('preview-box');
+    // Remove all bg-* classes
+    box.className = box.className.replace(/\bbg-\w+/g, '').trim();
+    if (key === 'custom') {
+        const img = _loadCustomBg();
+        if (img) {
+            box.classList.add('bg-custom');
+            box.style.backgroundImage = `url(${img})`;
+        } else {
+            box.classList.add('bg-concert'); // fallback
+        }
+    } else {
+        box.style.backgroundImage = '';
+        box.classList.add(`bg-${key}`);
+    }
+}
+
+function triggerBgUpload() {
+    document.getElementById('bg-upload').click();
+}
+
+function handleBgUpload(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        try { localStorage.setItem('lyra-bg-custom', e.target.result); } catch(err) {
+            showToast('Image too large for localStorage');
+            return;
+        }
+        // Activate the custom option
+        const customOpt = document.querySelector('#bg-grid [data-bg="custom"]');
+        setBg('custom', customOpt);
+        showToast('✅ Background uploaded');
+    };
+    reader.readAsDataURL(file);
+    event.target.value = ''; // allow re-uploading same file
+}
+
+function _hasCustomBg() { try { return !!localStorage.getItem('lyra-bg-custom'); } catch(e) { return false; } }
+function _loadCustomBg() { try { return localStorage.getItem('lyra-bg-custom'); } catch(e) { return null; } }
+
+function initBg() {
+    let saved = 'concert';
+    try { saved = localStorage.getItem('lyra-bg') || 'concert'; } catch(e) {}
+    _currentBg = saved;
+    applyBg(saved);
+    // Set active state on the matching button
+    const btn = document.querySelector(`#bg-grid [data-bg="${saved}"]`);
+    if (btn) {
+        document.querySelectorAll('#bg-grid .opt').forEach(o => o.classList.remove('active'));
+        btn.classList.add('active');
+    }
+}
+
+// ─── Error Banner (1.5) ─────────────────────────────────────────────────────
+// Listens for ERROR_REPORT messages on the dashboard WebSocket.
+// Displays a dismissible banner with the error code and log filename.
+
+let _dashWs = null;
+
+function initDashWebSocket() {
+    _dashWs = new WebSocket(`ws://${window.location.host}`);
+    _dashWs.onmessage = (e) => {
+        try {
+            const msg = JSON.parse(e.data);
+            if (msg.type === 'ERROR_REPORT') {
+                showErrorBanner(msg.code, msg.filename);
+            }
+            // ignore regular track data on dashboard WS
+        } catch(err) {}
+    };
+    _dashWs.onclose = () => setTimeout(initDashWebSocket, 5000);
+    _dashWs.onerror = () => _dashWs.close();
+}
+
+function showErrorBanner(code, filename) {
+    const container = document.getElementById('error-banner-container');
+    const banner = document.createElement('div');
+    banner.className = 'error-banner';
+    banner.innerHTML = `
+        <button class="error-close" onclick="this.parentNode.remove()">✕</button>
+        <strong>⚠ ${code}</strong>
+        <div class="error-detail">Saved to ~/.config/lyra/logs/${filename || 'unknown'}</div>
+    `;
+    container.appendChild(banner);
+    setTimeout(() => { if (banner.parentNode) banner.remove(); }, 10000);
 }
 
 // ─── Plugins ────────────────────────────────────────────────────────────────
@@ -448,6 +565,9 @@ function reset() {
     syncPlayerToServer('');
     document.querySelectorAll('.opt').forEach(o => o.classList.remove('active'));
     ['t-compact','c-square','m-dark','l-en'].forEach(id => document.getElementById(id)?.classList.add('active'));
+    // Reset background to default
+    const concertBtn = document.querySelector('#bg-grid [data-bg="concert"]');
+    setBg('concert', concertBtn);
     applyDashLang(); update();
 }
 
@@ -463,55 +583,59 @@ const OBS_SIZES = {
     notif:   [400, 100],
 };
 
+let _updateTimer = null;
+
 function update() {
-    const magic       = document.getElementById('magic').checked;
-    const glow        = document.getElementById('glow').checked;
-    const wglow       = document.getElementById('wglow').checked;
-    const acc         = document.getElementById('acc').value;
-    const hostname    = document.getElementById('hostname').value || '';
-    const player      = document.getElementById('player-select').value || '';
-    const font        = _selectedFont || '';
-    const hide_paused = document.getElementById('hide_paused').checked;
+    clearTimeout(_updateTimer);
+    
+    _updateTimer = setTimeout(() => {
+        const magic       = document.getElementById('magic').checked;
+        const glow        = document.getElementById('glow').checked;
+        const wglow       = document.getElementById('wglow').checked;
+        const acc         = document.getElementById('acc').value;
+        const hostname    = document.getElementById('hostname').value || '';
+        const player      = document.getElementById('player-select').value || '';
+        const font        = _selectedFont || '';
+        const hide_paused = document.getElementById('hide_paused').checked;
 
-    document.getElementById('shell-hostname-wrap').style.display = (state.theme === 'shell') ? 'block' : 'none';
+        document.getElementById('shell-hostname-wrap').style.display = (state.theme === 'shell') ? 'block' : 'none';
 
-    const sizes = { ...OBS_SIZES, ...(document.lyraPluginSizes || {}) };
-    const [ws, hs] = sizes[state.theme] || [490, 180];
-    const frame = document.getElementById('preview');
-    frame.width = ws; frame.height = hs;
+        const sizes = { ...OBS_SIZES, ...(document.lyraPluginSizes || {}) };
+        const [ws, hs] = sizes[state.theme] ||[490, 180];
+        const frame = document.getElementById('preview');
+        frame.width = ws; frame.height = hs;
 
-    const d = dashI18n[state.lang] || dashI18n.en;
-    document.getElementById('obs-info').innerText = `${d.obs_label}: ${ws}px x ${hs}px`;
+        const d = dashI18n[state.lang] || dashI18n.en;
+        document.getElementById('obs-info').innerText = `${d.obs_label}: ${ws}px x ${hs}px`;
 
-    const q = `?theme=${state.theme}&cover=${state.cover}&mode=${state.mode}&lang=${state.lang}&acc=${encodeURIComponent(acc)}&magic=${magic}&glow=${glow}&wglow=${wglow}&hostname=${encodeURIComponent(hostname)}&player=${encodeURIComponent(player)}&font=${encodeURIComponent(font)}&hide_paused=${hide_paused}`;
-    frame.setAttribute('data-url', q);
+        const q = `?theme=${state.theme}&cover=${state.cover}&mode=${state.mode}&lang=${state.lang}&acc=${encodeURIComponent(acc)}&magic=${magic}&glow=${glow}&wglow=${wglow}&hostname=${encodeURIComponent(hostname)}&player=${encodeURIComponent(player)}&font=${encodeURIComponent(font)}&hide_paused=${hide_paused}`;
+        frame.setAttribute('data-url', q);
 
-    if (player !== _lastPlayer) {
-        _lastPlayer = player;
-        syncPlayerToServer(player);
-        // Full iframe reload — mark not ready, WIDGET_READY will re-trigger update
-        _iframeReady = false;
-        _updatePending = true;
-        frame.src = '/widget' + q;
-        return;
-    }
+        if (player !== _lastPlayer) {
+            _lastPlayer = player;
+            syncPlayerToServer(player);
+            _iframeReady = false;
+            _updatePending = true;
+            frame.src = '/widget' + q;
+            return;
+        }
 
-    // If iframe is mid-reload, queue the update for when WIDGET_READY fires
-    if (!_iframeReady) {
-        _updatePending = true;
-        return;
-    }
+        if (!_iframeReady) {
+            _updatePending = true;
+            return;
+        }
 
-    if (frame.contentWindow) {
-        frame.contentWindow.postMessage({
-            type: 'UPDATE_CONFIG',
-            data: {
-                t: state.theme, c: state.cover, m: state.mode,
-                acc, magic, glow, wglow, lang: state.lang,
-                hostname, player, font, hide_paused,
-            }
-        }, '*');
-    }
+        if (frame.contentWindow) {
+            frame.contentWindow.postMessage({
+                type: 'UPDATE_CONFIG',
+                data: {
+                    t: state.theme, c: state.cover, m: state.mode,
+                    acc, magic, glow, wglow, lang: state.lang,
+                    hostname, player, font, hide_paused,
+                }
+            }, '*');
+        }
+    }, 100);
 }
 
 function copy() {
@@ -527,10 +651,12 @@ function copy() {
 window.onload = () => {
     initDashTheme();
     applyDashLang();
+    initBg();
     refreshPlayers();
     initFonts();
     refreshPresets();
     loadPlugins();
+    initDashWebSocket();
     // Initial update fires after iframe sends WIDGET_READY
     _iframeReady = false;
     _updatePending = true;
