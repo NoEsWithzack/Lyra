@@ -176,8 +176,7 @@ function updateUI() {
         c.startsWith('t-') || c.startsWith('c-') || c.endsWith('-mode') || 
         ['paused', 'glow', 'wglow', 'hide-paused',
          'vinyl-no-spin', 'vinyl-circular', 'vinyl-no-arm'].includes(c)
-    );
-    oldClasses.forEach(c => w.classList.remove(c));
+    );    oldClasses.forEach(c => w.classList.remove(c));
 
     // 2. Agregar las nuevas clases de la configuración actual
     w.classList.add(`t-${config.t}`, `c-${config.c}`, `${config.m}-mode`);

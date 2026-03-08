@@ -320,9 +320,12 @@ body { display: flex; align-items: center; justify-content: center;
 /* Disc size per theme */
 .t-compact.c-vinyl  #art-container { width: 68px;  height: 68px;  }
 .t-boxy.c-vinyl     #art-container { width: 96px;  height: 96px;  }
-.t-neon.c-vinyl     #art-container { width: 66px;  height: 66px;  }
+.t-neon.c-vinyl     #art-container { width: 82px;  height: 82px;  } /* was 66px — too small for grooves */
 .t-macos.c-vinyl    #art-container { width: 60px;  height: 60px;  }
 .t-gallery.c-vinyl  #art-container { width: 270px; height: 270px; margin: 25px auto 0; }
+
+/* c-none for float now hides the wrap (arm lives inside it) */
+.t-float.c-none #float-art-box { display: none !important; }
 
 /* Tonearm (gallery + float only — other themes too small) */
 #vinyl-arm {
@@ -332,17 +335,65 @@ body { display: flex; align-items: center; justify-content: center;
     overflow: visible;
 }
 .t-gallery.c-vinyl  #vinyl-arm { display: block; width: 62px; height: 145px; right: -8px;  top: 14px; }
-.t-float.c-vinyl    #vinyl-arm { display: block; width: 50px; height: 115px; right: -6px;  top: 10px; }
+/* ── Float art-wrap: position:relative so the vinyl arm is positioned relative to it ── */
+#float-art-wrap { position: relative; }
+.t-float.c-none #float-art-wrap { display: none !important; }
 
-/* Float vinyl overrides (uses #float-art not #art-container) */
-.t-float.c-vinyl #float-art-box { position: relative; overflow: hidden; border-radius: 50%; }
-.t-float.c-vinyl #float-art {
-    border-radius: 50% !important; animation: spin 8s linear infinite;
-    border: 3px solid #0f0f0f; box-shadow: 0 0 12px rgba(0,0,0,0.5);
+/* ── Float vinyl arm ─────────────────────────────────────────────── */
+#float-vinyl-arm {
+    display: none; position: absolute;
+    pointer-events: none; z-index: 30;
+    filter: drop-shadow(0 2px 6px rgba(0,0,0,0.7));
+    overflow: visible;
 }
-.t-float.paused.c-vinyl #float-art { animation-play-state: paused; }
-.light-mode.t-float.c-vinyl #float-art { border-color: #e0ddd8; }
-/* Float vinyl spindle hole */
+.t-float.c-vinyl #float-vinyl-arm {
+    display: block; width: 50px; height: 115px; right: -6px; top: 10px;
+}
+#widget.vinyl-no-arm #float-vinyl-arm { display: none !important; }
+
+/* ── Float vinyl: disc appearance identical to Gallery ──────────────
+   #float-art-box becomes the dark spinning groove disc.
+   #float-art becomes the small center label (44% diameter, no spin). */
+.t-float.c-vinyl #float-art-box {
+    position: relative;
+    border-radius: 50% !important;
+    overflow: hidden;
+    line-height: 0;
+    /* Same groove radial-gradient as .c-vinyl #art-container */
+    background:
+        radial-gradient(circle at 50% 50%, transparent 30%, rgba(255,255,255,0.022) 31%, transparent 32%),
+        radial-gradient(circle at 50% 50%, transparent 37%, rgba(255,255,255,0.018) 38%, transparent 39%),
+        radial-gradient(circle at 50% 50%, transparent 44%, rgba(255,255,255,0.022) 45%, transparent 46%),
+        radial-gradient(circle at 50% 50%, transparent 51%, rgba(255,255,255,0.018) 52%, transparent 53%),
+        radial-gradient(circle at 50% 50%, transparent 58%, rgba(255,255,255,0.022) 59%, transparent 60%),
+        radial-gradient(circle at 50% 50%, transparent 65%, rgba(255,255,255,0.018) 66%, transparent 67%),
+        radial-gradient(circle at 50% 50%, transparent 72%, rgba(255,255,255,0.022) 73%, transparent 74%),
+        radial-gradient(circle at 50% 50%, transparent 79%, rgba(255,255,255,0.015) 80%, transparent 81%),
+        linear-gradient(135deg, #1c1c1c 0%, #0d0d0d 100%) !important;
+    /* Disc spins — not the art inside */
+    animation: spin 8s linear infinite;
+    /* Explicit size matching #float-art's natural 240px footprint */
+    width: 240px; height: 240px;
+    /* Override float-box border-radius and backdrop-filter */
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+/* Center label — identical pattern to .c-vinyl #art */
+.t-float.c-vinyl #float-art {
+    position: absolute !important; top: 50% !important; left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    width: 44% !important; height: 44% !important;
+    border-radius: 50% !important;
+    border: none !important;
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.6) !important;
+    animation: none !important; /* parent disc spins instead */
+    object-fit: cover;
+}
+/* Pause stops the disc */
+.t-float.paused.c-vinyl #float-art-box { animation-play-state: paused; }
+/* Spindle hole */
 .t-float.c-vinyl #float-art-box::after {
     content: ''; position: absolute; top: 50%; left: 50%;
     transform: translate(-50%, -50%);
@@ -351,6 +402,8 @@ body { display: flex; align-items: center; justify-content: center;
     border: 1px solid rgba(255,255,255,0.08);
     pointer-events: none;
 }
+/* Hide the widget-level #vinyl-arm for Float — it uses #float-vinyl-arm instead */
+.t-float #vinyl-arm { display: none !important; }
 
 /* macOS vinyl uses #macos-art */
 .t-macos.c-vinyl #macos-art {
@@ -489,38 +542,25 @@ body { display: flex; align-items: center; justify-content: center;
     filter: drop-shadow(0 0 18px var(--acc)) drop-shadow(0 0 5px var(--glow-color, #ffffff));
 }
 
-/* ── Float + Vinyl — filter on #float-art-box.
-   #float-art-box has overflow:hidden which clips children's shadows.
-   #float-art-box also has backdrop-filter; applying filter here takes
-   priority over backdrop-filter in Chromium (used by OBS), which is
-   the correct trade-off — the glow is the visible stream effect. */
-#widget.glow.t-float.c-vinyl  #float-art-box { filter: drop-shadow(0 0 20px var(--acc)); }
-#widget.wglow.t-float.c-vinyl #float-art-box { filter: drop-shadow(0 0 14px var(--glow-color, #ffffff)); }
+/* ── Float + Vinyl — filter on #float-art-box (now a plain disc, no backdrop-filter) */
+#widget.glow.t-float.c-vinyl  #float-art-box { filter: drop-shadow(0 0 22px var(--acc)); }
+#widget.wglow.t-float.c-vinyl #float-art-box { filter: drop-shadow(0 0 16px var(--glow-color, #ffffff)); }
 #widget.glow.wglow.t-float.c-vinyl #float-art-box {
-    filter: drop-shadow(0 0 20px var(--acc)) drop-shadow(0 0 7px var(--glow-color, #ffffff));
+    filter: drop-shadow(0 0 22px var(--acc)) drop-shadow(0 0 8px var(--glow-color, #ffffff));
 }
 
-/* ── Alert / Notif — filter on #notif-art only.
-   Problem: #notif-chrome has backdrop-filter which creates a GPU
-   compositing layer in Chromium. filter:drop-shadow on children is
-   composited INSIDE that layer and never paints outside it, even
-   with overflow:visible. The only fix is to remove backdrop-filter
-   from the parent when glow is active, then let the shadow escape. */
-#widget.glow.t-notif  #notif-art { filter: drop-shadow(0 0 14px var(--acc)); }
-#widget.wglow.t-notif #notif-art { filter: drop-shadow(0 0 12px var(--glow-color, #ffffff)); }
-#widget.glow.wglow.t-notif #notif-art {
-    filter: drop-shadow(0 0 14px var(--acc)) drop-shadow(0 0 6px var(--glow-color, #ffffff));
+/* ── Alert / Notif — glow on #notif-chrome itself.
+   Applying filter:drop-shadow to a child of a backdrop-filter element
+   causes Chromium to clip the shadow inside the compositing layer.
+   Applying filter to #notif-chrome directly works correctly:
+   - backdrop-filter (frosted glass) stays active ✓
+   - overflow:hidden stays active → progress bar clips to rounded corners ✓
+   - shadow paints outside the card boundary → no progress bar bleed ✓ */
+#widget.glow.t-notif  #notif-chrome { filter: drop-shadow(0 0 18px var(--acc)); }
+#widget.wglow.t-notif #notif-chrome { filter: drop-shadow(0 0 14px var(--glow-color, #ffffff)); }
+#widget.glow.wglow.t-notif #notif-chrome {
+    filter: drop-shadow(0 0 18px var(--acc)) drop-shadow(0 0 8px var(--glow-color, #ffffff));
 }
-/* Disable backdrop-filter so the art's drop-shadow can paint outside the chrome */
-#widget.glow.t-notif  #notif-chrome,
-#widget.wglow.t-notif #notif-chrome {
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-    overflow: visible;
-}
-/* Keep the progress bar clipped to the rounded bottom edge */
-#widget.glow.t-notif  #notif-progress,
-#widget.wglow.t-notif #notif-progress { overflow: hidden; }
 
 /* ── macOS — filter on #macos-art ────────────────────────────── */
 #widget.glow.t-macos  #macos-art { filter: drop-shadow(0 0 12px var(--acc)); }
@@ -649,15 +689,15 @@ body { display: flex; align-items: center; justify-content: center;
    ══════════════════════════════════════════════════════════════ */
 
 /* ─── vinyl-no-spin: disable disc rotation ──────────────────────
-   Targets every element that gets the spin animation */
-#widget.vinyl-no-spin.c-vinyl #art-container { animation: none !important; }
-#widget.vinyl-no-spin.c-vinyl #float-art     { animation: none !important; }
-#widget.vinyl-no-spin.t-macos.c-vinyl #macos-art { animation: none !important; }
+   Each theme spins a different element — must target each one. */
+#widget.vinyl-no-spin.c-vinyl #art-container         { animation: none !important; } /* compact/boxy/gallery/neon */
+#widget.vinyl-no-spin.c-vinyl #float-art-box         { animation: none !important; } /* float (disc is float-art-box after refactor) */
+#widget.vinyl-no-spin.t-macos.c-vinyl #macos-art     { animation: none !important; } /* macos */
 
 /* ─── vinyl-circular: strip disc grooves, show art as full circle ──
    Removes the dark vinyl background and makes art fill the container */
 #widget.vinyl-circular.c-vinyl #art-container {
-    background: none !important; /* hides radial-gradient grooves */
+    background: none !important;
 }
 #widget.vinyl-circular.c-vinyl #art {
     width:  94% !important;
@@ -665,13 +705,17 @@ body { display: flex; align-items: center; justify-content: center;
     box-shadow: none !important;
 }
 #widget.vinyl-circular.c-vinyl #art-container::after {
-    display: none !important; /* hides center spindle hole */
+    display: none !important;
 }
 
-/* Float variant — border and spindle hole */
+/* Float variant: clear groove bg from art-box, fill with art */
+#widget.vinyl-circular.t-float.c-vinyl #float-art-box {
+    background: none !important;
+    border: 3px solid rgba(255,255,255,0.12) !important;
+}
 #widget.vinyl-circular.t-float.c-vinyl #float-art {
-    border: none !important;
-    box-shadow: none !important;
+    width:  94% !important;
+    height: 94% !important;
 }
 #widget.vinyl-circular.t-float.c-vinyl #float-art-box::after {
     display: none !important;

@@ -461,16 +461,33 @@ function filterFonts() {
     const dropdown = document.getElementById('font-dropdown');
     dropdown.innerHTML = '';
     const matches = query
-        ? _allFonts.filter(f => f.toLowerCase().includes(query)).slice(0, 50)
-        : _allFonts.slice(0, 50);
+        ? _allFonts.filter(f => f.toLowerCase().includes(query)).slice(0, 30)
+        : _allFonts.slice(0, 30);
+
     if (matches.length === 0) {
-        dropdown.innerHTML = '<div style="padding:8px 12px;opacity:0.5;font-size:12px;">No fonts found</div>';
+        dropdown.innerHTML = '<div style="padding:10px 14px;opacity:0.45;font-size:12px;">No fonts found</div>';
         return;
     }
+
+    // ── Inject one Google Fonts CSS request for all visible fonts ──────────
+    // Reuse the same <link> tag to avoid flooding the DOM with requests.
+    const families = matches.map(f => 'family=' + f.replace(/ /g, '+')).join('&');
+    let link = document.getElementById('font-preview-link');
+    if (!link) {
+        link = document.createElement('link');
+        link.id  = 'font-preview-link';
+        link.rel = 'stylesheet';
+        document.head.appendChild(link);
+    }
+    link.href = `https://fonts.googleapis.com/css2?${families}&display=swap`;
+
+    // ── Render each font item using its own typeface ────────────────────────
     matches.forEach(font => {
         const item = document.createElement('div');
-        item.className   = 'font-option';
-        item.textContent = font;
+        item.className = 'font-option';
+        item.innerHTML =
+            `<span class="font-opt-preview" style="font-family:'${font}',sans-serif;">${font}</span>` +
+            `<span class="font-opt-sample"  style="font-family:'${font}',sans-serif;">Aa</span>`;
         item.onmousedown = () => selectFont(font);
         dropdown.appendChild(item);
     });

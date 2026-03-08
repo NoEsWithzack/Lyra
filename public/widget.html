@@ -64,8 +64,19 @@
 
         <!-- Float chrome (t-float only) — 3 separate floating boxes -->
         <div id="float-chrome" style="display:none">
-            <div id="float-art-box" class="float-box">
-                <img id="float-art" crossorigin="anonymous" />
+            <!-- float-art-wrap: position:relative so the vinyl arm can be placed relative to the disc -->
+            <div id="float-art-wrap">
+                <div id="float-art-box" class="float-box">
+                    <img id="float-art" crossorigin="anonymous" />
+                </div>
+                <!-- Float-specific tonearm (positioned relative to float-art-wrap, not #widget) -->
+                <svg id="float-vinyl-arm" viewBox="0 0 62 145" xmlns="http://www.w3.org/2000/svg" overflow="visible">
+                    <circle cx="50" cy="14" r="7" fill="#2a2a2a" stroke="#444" stroke-width="1.5"/>
+                    <circle cx="50" cy="14" r="3" fill="#666"/>
+                    <line x1="50" y1="18" x2="30" y2="100" stroke="#3a3a3a" stroke-width="5" stroke-linecap="round"/>
+                    <line x1="30" y1="100" x2="18" y2="118" stroke="#444" stroke-width="4" stroke-linecap="round"/>
+                    <circle cx="16" cy="122" r="3.5" fill="#888" stroke="#555" stroke-width="1"/>
+                </svg>
             </div>
             <div id="float-info-box" class="float-box">
                 <p id="float-track">—</p>
