@@ -2,7 +2,7 @@
   "name": "lyra",
   "version": "1.0.0",
   "description": "Music overlay for streamers and content creators — self-hosted, OBS-ready, fully customizable.",
-  "main": "server.js",
+  "main": "main.js",
   "scripts": {
     "start": "electron . --no-sandbox --enable-logging",
     "server": "node server.js"

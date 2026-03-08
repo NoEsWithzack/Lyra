@@ -38,18 +38,22 @@ function syncArt(id, src) {
 
 const params = new URLSearchParams(window.location.search);
 let config = {
-    t:           params.get('theme')       || 'compact',
-    c:           params.get('cover')       || 'square',
-    m:           params.get('mode')        || 'dark',
-    acc:         params.get('acc')         || '#1db954',
-    magic:       params.get('magic')       === 'true',
-    glow:        params.get('glow')        === 'true',
-    wglow:       params.get('wglow')       === 'true',
-    lang:        params.get('lang')        || 'en',
-    hostname:    params.get('hostname')    || '',
-    player:      params.get('player')      || '',
-    font:        params.get('font')        || '',
-    hide_paused: params.get('hide_paused') === 'true',
+    t:              params.get('theme')        || 'compact',
+    c:              params.get('cover')        || 'square',
+    m:              params.get('mode')         || 'dark',
+    acc:            params.get('acc')          || '#1db954',
+    magic:          params.get('magic')        === 'true',
+    glow:           params.get('glow')         === 'true',
+    wglow:          params.get('wglow')        === 'true',
+    lang:           params.get('lang')         || 'en',
+    hostname:       params.get('hostname')     || '',
+    player:         params.get('player')       || '',
+    font:           params.get('font')         || '',
+    hide_paused:    params.get('hide_paused')  === 'true',
+    // Vinyl options — default: spin on, full disc, tonearm visible
+    vinyl_spin:     params.get('vinyl_spin')     !== 'false',  // true unless explicitly false
+    vinyl_circular: params.get('vinyl_circular') === 'true',   // false unless explicitly true
+    vinyl_tonearm:  params.get('vinyl_tonearm')  !== 'false',  // true unless explicitly false
 };
 
 const w       = $('widget');
@@ -170,7 +174,8 @@ function updateUI() {
     // 1. Encontrar y eliminar solo las clases propias de Lyra (protege los futuros plugins)
     const oldClasses = Array.from(w.classList).filter(c => 
         c.startsWith('t-') || c.startsWith('c-') || c.endsWith('-mode') || 
-        ['paused', 'glow', 'wglow', 'hide-paused'].includes(c)
+        ['paused', 'glow', 'wglow', 'hide-paused',
+         'vinyl-no-spin', 'vinyl-circular', 'vinyl-no-arm'].includes(c)
     );
     oldClasses.forEach(c => w.classList.remove(c));
 
@@ -180,6 +185,12 @@ function updateUI() {
     if (config.glow) w.classList.add('glow');
     if (config.wglow) w.classList.add('wglow');
     if (config.hide_paused) w.classList.add('hide-paused');
+    // Vinyl customization classes
+    if (config.c === 'vinyl') {
+        if (!config.vinyl_spin)     w.classList.add('vinyl-no-spin');
+        if (config.vinyl_circular)  w.classList.add('vinyl-circular');
+        if (!config.vinyl_tonearm)  w.classList.add('vinyl-no-arm');
+    }
 
     setLayout();
 

@@ -1,99 +1,65 @@
 'use strict';
 
-const { app, BrowserWindow, Tray, Menu, clipboard, Notification } = require('electron');
-const path = require('path');
-const fs = require('fs');
+/**
+ * main.js — Electron entry point for Lyra
+ *
+ * Responsibilities:
+ *   1. Start the Express + WebSocket server (server.js)
+ *   2. Create the BrowserWindow with correct icon
+ *   3. Load the dashboard once the HTTP server is ready
+ */
 
-// Intentamos cargar el puerto desde la configuración
+const { app, BrowserWindow, shell } = require('electron');
+const path = require('path');
 const { PORT } = require('./src/config');
 
-// --- 1. ARRANCAR EL SERVIDOR ---
-try {
-    console.log("[Lyra] Iniciando servidor interno...");
-    require('./server.js');
-} catch (e) {
-    console.error("[Lyra] ERROR CRÍTICO: El servidor no pudo iniciar:", e);
-}
+let mainWindow = null;
 
-let mainWindow;
-let tray;
+// Start the HTTP + WebSocket server
+require('./server');
+
+const SERVER_URL = `http://localhost:${PORT}`;
 
 function createWindow() {
-    console.log("[Lyra] Creando ventana...");
-    
     mainWindow = new BrowserWindow({
-        width: 1200,
-        height: 800,
-        title: "Lyra Dashboard",
-        backgroundColor: '#09090b',
-        autoHideMenuBar: true,
-        show: false, // No la mostramos hasta que esté lista
+        width:           1280,
+        height:           860,
+        minWidth:          960,
+        minHeight:         600,
+        title:           'Lyra',
+        autoHideMenuBar:  true,
+        backgroundColor: '#12121A',
+        // ── App icon: used in taskbar, dock, alt+tab, and window title bar ──
+        // Electron on Linux requires an absolute path to a PNG file.
+        icon: path.join(__dirname, 'public', 'icon.png'),
         webPreferences: {
-            nodeIntegration: false,
-            contextIsolation: true
-        }
+            nodeIntegration:  false,
+            contextIsolation: true,
+        },
     });
 
-    // Esperamos 2 segundos antes de cargar para que el servidor tenga tiempo de sobra
+    // Open external links in the system browser
+    mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+        shell.openExternal(url);
+        return { action: 'deny' };
+    });
+
+    // Grace period: give server.listen() time to bind
     setTimeout(() => {
-        console.log(`[Lyra] Cargando Dashboard en puerto ${PORT}...`);
-        mainWindow.loadURL(`http://127.0.0.1:${PORT}`).catch(err => {
-            console.error("[Lyra] No se pudo cargar la URL del servidor:", err);
+        mainWindow.loadURL(SERVER_URL).catch(() => {
+            setTimeout(() => mainWindow.loadURL(SERVER_URL), 1500);
         });
-    }, 2000);
+    }, 800);
 
-    mainWindow.once('ready-to-show', () => {
-        mainWindow.show();
-        // ESTA LÍNEA ES PARA DEPURAR: Si la ventana abre, verás una consola a la derecha.
-        // mainWindow.webContents.openDevTools(); 
-    });
-
-    mainWindow.on('close', (event) => {
-        if (!app.isQuitting) {
-            event.preventDefault();
-            mainWindow.hide();
-        }
-    });
+    mainWindow.on('closed', () => { mainWindow = null; });
 }
 
-function createTray() {
-    // Versión simplificada para evitar errores de icono
-    const iconPath = path.join(__dirname, 'public', 'icon.png');
-    if (!fs.existsSync(iconPath)) {
-        console.log("[Lyra] ⚠️ No hay icono en /public/icon.png - Saltando bandeja");
-        return;
-    }
-
-    try {
-        tray = new Tray(iconPath);
-        const contextMenu = Menu.buildFromTemplate([
-            { label: 'Lyra Online', enabled: false },
-            { type: 'separator' },
-            { label: 'Abrir Panel', click: () => mainWindow.show() },
-            { label: 'Salir', click: () => {
-                app.isQuitting = true;
-                app.quit();
-            }}
-        ]);
-        tray.setContextMenu(contextMenu);
-    } catch (e) {
-        console.error("[Lyra] Error al crear la bandeja:", e);
-    }
-}
-
-// Configuración de estabilidad para Linux
-app.disableHardwareAcceleration();
-app.commandLine.appendSwitch('no-sandbox');
-
-app.whenReady().then(() => {
-    createWindow();
-    createTray();
-});
-
-app.on('before-quit', () => {
-    app.isQuitting = true;
-});
+app.whenReady().then(createWindow);
 
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') app.quit();
+});
+
+app.on('activate', () => {
+    if (mainWindow === null) createWindow();
 });

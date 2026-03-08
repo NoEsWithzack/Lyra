@@ -26,7 +26,6 @@ errors.init();
 app.use(express.json({ limit: '50mb' }));
 
 // ─── Serve Static Files ─────────────────────────────────────────────────────
-// This tells the server that all our HTML/CSS/JS is now in the 'public' folder
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ─── Pages ──────────────────────────────────────────────────────────────────

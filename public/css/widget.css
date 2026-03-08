@@ -441,14 +441,16 @@ body { display: flex; align-items: center; justify-content: center;
 
 /* ══════════════════════════════════════════════════════════════
    GLOW SYSTEM
-   • Cover Glow  (.glow)  → accent-colored drop-shadow FROM the art
-   • Contrast Glow (.wglow) → white drop-shadow FROM the art
-   Both use filter:drop-shadow on the art element of each theme.
-   Shell exception: no art → neon text-shadow on prompt text.
+   • Cover Glow  (.glow)  → accent-colored shadow FROM the art
+   • Contrast Glow (.wglow) → white shadow FROM the art
+   Rule: use filter:drop-shadow whenever possible — it follows the
+   actual rendered pixel silhouette, works correctly with rotating
+   elements, and is never clipped by overflow:hidden on ancestors.
+   Exception: Gallery square uses inset box-shadow (intentional
+   inner-rim effect). Shell uses text-shadow (no art element).
    ══════════════════════════════════════════════════════════════ */
 
-/* ── Compact / Boxy / Neon → standard #art (opt-in list) ────── */
-/* To add glow to a new theme that uses #art, add its .t-<id> here */
+/* ── Compact / Boxy / Neon — filter on #art ─────────────────── */
 #widget.glow.t-compact  #art,
 #widget.glow.t-boxy     #art,
 #widget.glow.t-neon     #art { filter: drop-shadow(0 0 14px var(--acc)); }
@@ -463,29 +465,71 @@ body { display: flex; align-items: center; justify-content: center;
     filter: drop-shadow(0 0 14px var(--acc)) drop-shadow(0 0 4px var(--glow-color, #ffffff));
 }
 
-/* ── Gallery → inset box-shadow on #art-container
-   (overflow:hidden clips inset to the cover art bounds — creates inner rim glow) */
-#widget.glow.t-gallery  #art-container { box-shadow: inset 0 0 30px 8px var(--acc); }
-#widget.wglow.t-gallery #art-container { box-shadow: inset 0 0 20px 6px var(--glow-color, #ffffff); }
-#widget.glow.wglow.t-gallery #art-container {
+/* ── Gallery (square / none) — inset box-shadow creates inner rim glow ── */
+#widget.glow.t-gallery:not(.c-vinyl)  #art-container { box-shadow: inset 0 0 30px 8px var(--acc); }
+#widget.wglow.t-gallery:not(.c-vinyl) #art-container { box-shadow: inset 0 0 20px 6px var(--glow-color, #ffffff); }
+#widget.glow.wglow.t-gallery:not(.c-vinyl) #art-container {
     box-shadow: inset 0 0 30px 8px var(--acc), inset 0 0 12px 3px var(--glow-color, #ffffff);
 }
 
-/* ── Float → box-shadow on #float-art */
-#widget.glow.t-float  #float-art { box-shadow: 0 0 18px 4px var(--acc); }
-#widget.wglow.t-float #float-art { box-shadow: 0 0 12px 3px var(--glow-color, #ffffff); }
-#widget.glow.wglow.t-float #float-art {
-    box-shadow: 0 0 18px 4px var(--acc), 0 0 5px 1px var(--glow-color, #ffffff);
+/* ── Gallery + Vinyl — filter on spinning disc.
+   box-shadow on a rotating element causes Chromium compositing
+   artifacts. filter:drop-shadow applies after compositing and
+   produces a clean circular halo regardless of rotation angle. */
+#widget.glow.t-gallery.c-vinyl  #art-container { filter: drop-shadow(0 0 22px var(--acc)); }
+#widget.wglow.t-gallery.c-vinyl #art-container { filter: drop-shadow(0 0 16px var(--glow-color, #ffffff)); }
+#widget.glow.wglow.t-gallery.c-vinyl #art-container {
+    filter: drop-shadow(0 0 22px var(--acc)) drop-shadow(0 0 8px var(--glow-color, #ffffff));
 }
 
-/* ── macOS → drop-shadow on #macos-art ───────────────────────── */
+/* ── Float (square / none) — filter on #float-art ────────────── */
+#widget.glow.t-float:not(.c-vinyl)  #float-art { filter: drop-shadow(0 0 18px var(--acc)); }
+#widget.wglow.t-float:not(.c-vinyl) #float-art { filter: drop-shadow(0 0 12px var(--glow-color, #ffffff)); }
+#widget.glow.wglow.t-float:not(.c-vinyl) #float-art {
+    filter: drop-shadow(0 0 18px var(--acc)) drop-shadow(0 0 5px var(--glow-color, #ffffff));
+}
+
+/* ── Float + Vinyl — filter on #float-art-box.
+   #float-art-box has overflow:hidden which clips children's shadows.
+   #float-art-box also has backdrop-filter; applying filter here takes
+   priority over backdrop-filter in Chromium (used by OBS), which is
+   the correct trade-off — the glow is the visible stream effect. */
+#widget.glow.t-float.c-vinyl  #float-art-box { filter: drop-shadow(0 0 20px var(--acc)); }
+#widget.wglow.t-float.c-vinyl #float-art-box { filter: drop-shadow(0 0 14px var(--glow-color, #ffffff)); }
+#widget.glow.wglow.t-float.c-vinyl #float-art-box {
+    filter: drop-shadow(0 0 20px var(--acc)) drop-shadow(0 0 7px var(--glow-color, #ffffff));
+}
+
+/* ── Alert / Notif — filter on #notif-art only.
+   Problem: #notif-chrome has backdrop-filter which creates a GPU
+   compositing layer in Chromium. filter:drop-shadow on children is
+   composited INSIDE that layer and never paints outside it, even
+   with overflow:visible. The only fix is to remove backdrop-filter
+   from the parent when glow is active, then let the shadow escape. */
+#widget.glow.t-notif  #notif-art { filter: drop-shadow(0 0 14px var(--acc)); }
+#widget.wglow.t-notif #notif-art { filter: drop-shadow(0 0 12px var(--glow-color, #ffffff)); }
+#widget.glow.wglow.t-notif #notif-art {
+    filter: drop-shadow(0 0 14px var(--acc)) drop-shadow(0 0 6px var(--glow-color, #ffffff));
+}
+/* Disable backdrop-filter so the art's drop-shadow can paint outside the chrome */
+#widget.glow.t-notif  #notif-chrome,
+#widget.wglow.t-notif #notif-chrome {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    overflow: visible;
+}
+/* Keep the progress bar clipped to the rounded bottom edge */
+#widget.glow.t-notif  #notif-progress,
+#widget.wglow.t-notif #notif-progress { overflow: hidden; }
+
+/* ── macOS — filter on #macos-art ────────────────────────────── */
 #widget.glow.t-macos  #macos-art { filter: drop-shadow(0 0 12px var(--acc)); }
 #widget.wglow.t-macos #macos-art { filter: drop-shadow(0 0 8px var(--glow-color, #ffffff)); }
 #widget.glow.wglow.t-macos #macos-art {
     filter: drop-shadow(0 0 12px var(--acc)) drop-shadow(0 0 4px var(--glow-color, #ffffff));
 }
 
-/* ── Shell → no art; neon glow on prompt text ─────────────────── */
+/* ── Shell — no art; neon glow on prompt text ────────────────── */
 #widget.glow.t-shell  .sh-host { text-shadow: 0 0 8px var(--acc), 0 0 20px var(--acc); }
 #widget.glow.t-shell  .sh-val  { text-shadow: 0 0 6px color-mix(in srgb, var(--acc) 60%, transparent); }
 #widget.wglow.t-shell .sh-host { text-shadow: 0 0 8px var(--glow-color), 0 0 20px color-mix(in srgb, var(--glow-color) 50%, transparent); }
@@ -598,3 +642,47 @@ body { display: flex; align-items: center; justify-content: center;
 .t-float.paused #float-track, .t-float.paused #float-artist {
     max-width: calc(100% - 85px) !important;
 }
+/* ══════════════════════════════════════════════════════════════
+   VINYL CUSTOMIZATION
+   Three independent toggles applied as CSS classes on #widget.
+   Each can be combined freely with any theme.
+   ══════════════════════════════════════════════════════════════ */
+
+/* ─── vinyl-no-spin: disable disc rotation ──────────────────────
+   Targets every element that gets the spin animation */
+#widget.vinyl-no-spin.c-vinyl #art-container { animation: none !important; }
+#widget.vinyl-no-spin.c-vinyl #float-art     { animation: none !important; }
+#widget.vinyl-no-spin.t-macos.c-vinyl #macos-art { animation: none !important; }
+
+/* ─── vinyl-circular: strip disc grooves, show art as full circle ──
+   Removes the dark vinyl background and makes art fill the container */
+#widget.vinyl-circular.c-vinyl #art-container {
+    background: none !important; /* hides radial-gradient grooves */
+}
+#widget.vinyl-circular.c-vinyl #art {
+    width:  94% !important;
+    height: 94% !important;
+    box-shadow: none !important;
+}
+#widget.vinyl-circular.c-vinyl #art-container::after {
+    display: none !important; /* hides center spindle hole */
+}
+
+/* Float variant — border and spindle hole */
+#widget.vinyl-circular.t-float.c-vinyl #float-art {
+    border: none !important;
+    box-shadow: none !important;
+}
+#widget.vinyl-circular.t-float.c-vinyl #float-art-box::after {
+    display: none !important;
+}
+
+/* macOS variant */
+#widget.vinyl-circular.t-macos.c-vinyl #macos-art {
+    border: none !important;
+    box-shadow: none !important;
+}
+
+/* ─── vinyl-no-arm: hide tonearm SVG ────────────────────────────
+   Only gallery+vinyl and float+vinyl show it by default */
+#widget.vinyl-no-arm #vinyl-arm { display: none !important; }

@@ -102,11 +102,29 @@ async function getMprisData(selectedPlayer) {
             return results.find(r => r.playing) ?? results[0];
         }
 
-        // Best-available mode: Playing > Paused, then by priority score
-        const playing = results.filter(r => r.playing);
-        const pool    = playing.length > 0 ? playing : results;
-        pool.sort((a, b) => playerPriority(a.player) - playerPriority(b.player));
-        return pool[0];
+        // ── Best-available mode: 4-tier priority ─────────────────────────────
+        // Tier 1: a dedicated music app that is actively playing
+        //   → always beats a browser tab playing YouTube
+        // Tier 2: any player that is actively playing (browser tabs etc.)
+        // Tier 3: a dedicated music app that is paused
+        //   → user clearly uses this app for music; resume is imminent
+        // Tier 4: anything that is registered on MPRIS (last resort)
+        //
+        // Within each tier, results are already sorted by MUSIC_APP_PRIORITY.
+        results.sort((a, b) => playerPriority(a.player) - playerPriority(b.player));
+
+        const isMusicApp = r => playerPriority(r.player) < 500;
+
+        const tier1 = results.filter(r => r.playing && isMusicApp(r));
+        if (tier1.length > 0) return tier1[0];
+
+        const tier2 = results.filter(r => r.playing);
+        if (tier2.length > 0) return tier2[0];
+
+        const tier3 = results.filter(r => isMusicApp(r));
+        if (tier3.length > 0) return tier3[0];
+
+        return results[0];
 
     } catch { return null; }
 }

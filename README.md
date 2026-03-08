@@ -36,25 +36,41 @@ Open `http://localhost:4640` in your browser. Play a song in any media player.
 
 ## Project Structure
 
+## Project Structure
 ```
 lyra/
-├── server.js               → Entry point (28 lines)
-├── dashboard.html           → Control panel UI
-├── widget.html              → OBS browser source
-├── css/
-│   ├── dashboard.css        → Dashboard styles
-│   └── widget.css           → Widget theme styles
-├── js/
-│   ├── dashboard.js         → Dashboard logic & state
-│   └── widget.js            → Widget renderer & WebSocket
+├── main.js                  → Electron entry point (window + server bootstrap)
+├── server.js                → Express + WebSocket server
+├── public/
+│   ├── dashboard.html       → Control panel UI
+│   ├── widget.html          → OBS browser source
+│   ├── icon.png             → App icon
+│   ├── css/
+│   │   ├── dashboard.css    → Dashboard styles
+│   │   └── widget.css       → Widget theme styles
+│   └── js/
+│       ├── dashboard.js     → Dashboard logic & state
+│       └── widget.js        → Widget renderer & WebSocket
 ├── src/
 │   ├── config.js            → Ports, URLs, settings
 │   ├── routes/              → Express API endpoints
-│   ├── services/            → MPRIS, album art, WebSocket
-│   └── utils/               → Chromium instance helpers
+│   │   ├── backgrounds.js
+│   │   ├── fonts.js
+│   │   ├── players.js
+│   │   ├── plugins.js
+│   │   └── presets.js
+│   ├── services/            → MPRIS, album art, WebSocket broadcast
+│   │   ├── albumArt.js
+│   │   ├── broadcast.js
+│   │   ├── errors.js
+│   │   └── mpris.js
+│   └── utils/
+│       └── chromium.js      → Chromium instance helpers
 ├── plugins/                 → Plugin directory (auto-scanned)
+├── backgrounds/             → User-uploaded background images
+├── presets.json             → Saved presets (auto-created)
 ├── package.json
-├── ROADMAP.md               → Full feature spec & phases
+├── ROADMAP.md
 └── CHANGELOG.md
 ```
 

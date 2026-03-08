@@ -1,5 +1,33 @@
 'use strict';
 
+// ─── OBS Recommended Browser Source Sizes ────────────────────────────────────
+// Width × Height in pixels. Shown in the dashboard so the streamer knows
+// exactly what to type in OBS → Browser Source → Width / Height.
+const THEME_SIZES = {
+    compact: { w: 800,  h: 100,  note: 'Horizontal bar'        },
+    boxy:    { w: 800,  h: 130,  note: 'Two-panel bar'          },
+    gallery: { w: 320,  h: 480,  note: 'Portrait card'          },
+    macos:   { w: 390,  h: 105,  note: 'macOS music pill'       },
+    shell:   { w: 470,  h: 135,  note: 'Terminal window'        },
+    neon:    { w: 430,  h: 125,  note: 'Neon waveform bar'      },
+    float:   { w: 260,  h: 530,  note: 'Floating panels stack'  },
+    notif:   { w: 440,  h: 95,   note: 'Slide-in toast'         },
+};
+
+// ─── Dashboard Preview Iframe Sizes ──────────────────────────────────────────
+// Scaled to fit the preview panel. Gallery and Float are taller than the
+// default 180 px, so they get a larger frame to avoid clipping.
+const PREVIEW_SIZES = {
+    compact: { w: 490, h: 130 },
+    boxy:    { w: 490, h: 185 },
+    gallery: { w: 380, h: 540 },
+    macos:   { w: 460, h: 190 },   // 390px widget + 50px margins + buffer
+    shell:   { w: 545, h: 220 },   // 470px widget + 50px margins + buffer
+    neon:    { w: 500, h: 185 },
+    float:   { w: 320, h: 590 },
+    notif:   { w: 490, h: 130 },
+};
+
 const state = { theme: 'compact', cover: 'square', mode: 'dark', lang: 'en' };
 let _lastPlayer = '', _selectedFont = '', _currentBg = 'concert', _iframeReady = false, _updatePending = false;
 
@@ -234,6 +262,16 @@ async function loadPreset() {
     _selectedFont = cfg.font || '';
     _currentBg = cfg.background || 'concert';
     applyBg(_currentBg);
+    // Restore vinyl options (default: spin on, circular off, arm on)
+    const spinEl     = document.getElementById('vinyl_spin');
+    const circEl     = document.getElementById('vinyl_circular');
+    const armEl      = document.getElementById('vinyl_tonearm');
+    if (spinEl) spinEl.checked     = cfg.vinyl_spin     !== false;
+    if (circEl) circEl.checked     = !!cfg.vinyl_circular;
+    if (armEl)  armEl.checked      = cfg.vinyl_tonearm  !== false;
+    // Show/hide vinyl options panel to match cover setting
+    const vinylOpts = document.getElementById('vinyl-options');
+    if (vinylOpts) vinylOpts.style.display = (cfg.c === 'vinyl') ? 'block' : 'none';
     update();
     showToast(`Loaded: ${name}`);
 }
@@ -257,15 +295,41 @@ function currentConfig() {
         player: document.getElementById('player-select').value,
         font: _selectedFont,
         hide_paused: document.getElementById('hide_paused').checked,
-        background: _currentBg
+        background: _currentBg,
+        // Vinyl-specific options (only meaningful when cover === 'vinyl')
+        vinyl_spin:     document.getElementById('vinyl_spin')?.checked     ?? true,
+        vinyl_circular: document.getElementById('vinyl_circular')?.checked ?? false,
+        vinyl_tonearm:  document.getElementById('vinyl_tonearm')?.checked  ?? true,
     };
 }
 
 function update() {
     const cfg = currentConfig();
-    const q = `?theme=${cfg.t}&cover=${cfg.c}&mode=${cfg.m}&lang=${cfg.lang}&acc=${encodeURIComponent(cfg.acc)}&magic=${cfg.magic}&glow=${cfg.glow}&wglow=${cfg.wglow}&hostname=${encodeURIComponent(cfg.hostname)}&player=${encodeURIComponent(cfg.player)}&font=${encodeURIComponent(cfg.font)}&hide_paused=${cfg.hide_paused}`;
+    const q = `?theme=${cfg.t}&cover=${cfg.c}&mode=${cfg.m}&lang=${cfg.lang}&acc=${encodeURIComponent(cfg.acc)}&magic=${cfg.magic}&glow=${cfg.glow}&wglow=${cfg.wglow}&hostname=${encodeURIComponent(cfg.hostname)}&player=${encodeURIComponent(cfg.player)}&font=${encodeURIComponent(cfg.font)}&hide_paused=${cfg.hide_paused}&vinyl_spin=${cfg.vinyl_spin}&vinyl_circular=${cfg.vinyl_circular}&vinyl_tonearm=${cfg.vinyl_tonearm}`;
     const frame = document.getElementById('preview');
     frame.setAttribute('data-url', q);
+
+    // ── Resize iframe to match the selected theme so nothing is clipped ──────
+    const ps = PREVIEW_SIZES[cfg.t] || PREVIEW_SIZES.compact;
+    frame.width  = ps.w;
+    frame.height = ps.h;
+
+    // ── Show OBS recommended browser-source size ──────────────────────────────
+    const ts = THEME_SIZES[cfg.t];
+    const obsInfo = document.getElementById('obs-info');
+    if (obsInfo && ts) {
+        obsInfo.innerHTML =
+            `📐 OBS Browser Source &nbsp;→&nbsp; <strong>${ts.w} × ${ts.h} px</strong> <span style="opacity:0.6;font-size:11px">(${ts.note})</span>`;
+    }
+
+    // ── Sync player filter to server (only when it changes) ──────────────────
+    // The widget does client-side filtering via postMessage, but the server
+    // also needs to know the selection so it broadcasts the right player data.
+    if (cfg.player !== _lastPlayer) {
+        _lastPlayer = cfg.player;
+        syncPlayerToServer(cfg.player);
+    }
+
     if (frame.contentWindow && _iframeReady) frame.contentWindow.postMessage({ type: 'UPDATE_CONFIG', data: cfg }, '*');
 }
 
@@ -289,7 +353,13 @@ window.addEventListener('message', e => {
 });
 
 function setTheme(v, el) { state.theme = v; activateOpt(el); update(); }
-function setCover(v, el) { state.cover = v; activateOpt(el); update(); }
+function setCover(v, el) {
+    state.cover = v;
+    activateOpt(el);
+    const opts = document.getElementById('vinyl-options');
+    if (opts) opts.style.display = (v === 'vinyl') ? 'block' : 'none';
+    update();
+}
 function setMode(v, el)  { state.mode  = v; activateOpt(el); update(); }
 function setLang(v, el)  { state.lang  = v; activateOpt(el); applyDashLang(); update(); }
 function activateOpt(el) {
@@ -302,3 +372,128 @@ function copy() {
     navigator.clipboard.writeText(url);
     showToast('📋 URL Copied');
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DASHBOARD THEME TOGGLE (light / dark for the control panel itself)
+// ═══════════════════════════════════════════════════════════════════════════
+
+function toggleDashTheme() {
+    const html    = document.documentElement;
+    const isDark  = html.getAttribute('data-theme') !== 'light';
+    const next    = isDark ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('lyra-dash-theme', next);
+    document.getElementById('icon-sun').style.display  = isDark ? 'block' : 'none';
+    document.getElementById('icon-moon').style.display = isDark ? 'none'  : 'block';
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// GLOW CHANGE — called by both Cover Glow and Contrast Glow checkboxes
+// ═══════════════════════════════════════════════════════════════════════════
+
+function onGlowChange() { update(); }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PRESET — Update & Delete
+// ═══════════════════════════════════════════════════════════════════════════
+
+async function updatePreset() {
+    const name = document.getElementById('preset-select').value;
+    if (!name) return showToast('Select a preset first');
+    await fetch('/api/presets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, config: currentConfig() })
+    });
+    showToast(`✅ Updated: ${name}`);
+}
+
+async function deletePreset() {
+    const name = document.getElementById('preset-select').value;
+    if (!name) return showToast('Select a preset first');
+    if (!confirm(`Delete preset "${name}"?`)) return;
+    await fetch(`/api/presets/${encodeURIComponent(name)}`, { method: 'DELETE' });
+    refreshPresets();
+    showToast(`🗑 Deleted: ${name}`);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// BACKGROUND UPLOAD
+// ═══════════════════════════════════════════════════════════════════════════
+
+function triggerBgUpload() {
+    document.getElementById('bg-upload').click();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// GOOGLE FONTS DROPDOWN
+// ═══════════════════════════════════════════════════════════════════════════
+
+let _allFonts = [];
+
+async function loadFonts() {
+    if (_allFonts.length > 0) return;
+    try {
+        const res  = await fetch('/api/fonts');
+        const data = await res.json();
+        const raw  = Array.isArray(data.fonts) ? data.fonts : [];
+        // The Google Fonts metadata API returns objects like { family: "Inter", ... }
+        // but some routes may normalise it to plain strings already — handle both.
+        _allFonts = raw.map(f => (typeof f === 'string' ? f : f.family)).filter(Boolean);
+    } catch(e) { _allFonts = []; }
+}
+
+function openFontDropdown() {
+    loadFonts().then(() => {
+        filterFonts();
+        document.getElementById('font-dropdown').style.display = 'block';
+    });
+}
+
+function closeFontDropdown() {
+    setTimeout(() => {
+        document.getElementById('font-dropdown').style.display = 'none';
+    }, 180);
+}
+
+function filterFonts() {
+    const query    = document.getElementById('font-input').value.toLowerCase().trim();
+    const dropdown = document.getElementById('font-dropdown');
+    dropdown.innerHTML = '';
+    const matches = query
+        ? _allFonts.filter(f => f.toLowerCase().includes(query)).slice(0, 50)
+        : _allFonts.slice(0, 50);
+    if (matches.length === 0) {
+        dropdown.innerHTML = '<div style="padding:8px 12px;opacity:0.5;font-size:12px;">No fonts found</div>';
+        return;
+    }
+    matches.forEach(font => {
+        const item = document.createElement('div');
+        item.className   = 'font-option';
+        item.textContent = font;
+        item.onmousedown = () => selectFont(font);
+        dropdown.appendChild(item);
+    });
+}
+
+function selectFont(font) {
+    _selectedFont = font;
+    document.getElementById('font-input').value = font;
+    document.getElementById('font-dropdown').style.display = 'none';
+    update();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// INIT — restore dash theme on load
+// ═══════════════════════════════════════════════════════════════════════════
+
+(function restoreDashTheme() {
+    const saved = localStorage.getItem('lyra-dash-theme');
+    if (saved === 'light') {
+        document.documentElement.setAttribute('data-theme', 'light');
+        const sun  = document.getElementById('icon-sun');
+        const moon = document.getElementById('icon-moon');
+        if (sun)  sun.style.display  = 'block';
+        if (moon) moon.style.display = 'none';
+    }
+})();
